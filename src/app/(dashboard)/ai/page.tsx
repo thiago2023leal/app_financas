@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { aiService } from '@/lib/ai/ai.service'
-import { useDashboardSummary } from '@/lib/hooks/use-transactions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Bot, Send, User, Loader2, Sparkles } from 'lucide-react'
@@ -17,10 +15,7 @@ const SUGGESTIONS = [
   'Qual categoria mais cara?',
 ]
 
-const now = new Date()
-
 export default function AIPage() {
-  const { summary, recentTransactions } = useDashboardSummary(now.getMonth() + 1, now.getFullYear())
   const [messages, setMessages] = useState<AIMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -41,10 +36,19 @@ export default function AIPage() {
     setLoading(true)
 
     try {
-      const reply = await aiService.chat(newMessages, summary, recentTransactions)
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
-    } catch {
-      setMessages((prev) => [...prev, { role: 'assistant', content: 'Desculpe, ocorreu um erro. Tente novamente.' }])
+      const res = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages }),
+      })
+      const data = await res.json() as { reply?: string; error?: string }
+      if (!res.ok || data.error) {
+        throw new Error(data.error ?? 'Erro ao processar resposta.')
+      }
+      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply! }])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro na conexão com o assistente.'
+      setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }])
     } finally {
       setLoading(false)
     }
