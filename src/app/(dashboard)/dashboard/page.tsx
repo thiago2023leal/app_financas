@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useDashboardSummary } from '@/lib/hooks/use-transactions'
+import { useAccounts } from '@/lib/hooks/use-accounts'
 import { CATEGORY_COLORS } from '@/lib/utils'
 import { SummaryCards } from '@/components/dashboard/summary-cards'
 import { CategoryChart } from '@/components/dashboard/category-chart'
@@ -20,6 +21,7 @@ export default function DashboardPage() {
 
   const { summary, expensesByCategory, incomeByCategory, recentTransactions, evolution, loading } =
     useDashboardSummary(month, year)
+  const { totalBalance } = useAccounts()
 
   const expCatSummary: CategorySummary[] = expensesByCategory
     .map(({ category, amount }) => ({
@@ -66,7 +68,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <SummaryCards summary={summary} />
+          <SummaryCards summary={summary} totalBalance={totalBalance} />
           <KPIIndicators evolution={evolution} />
           <AccountsOverview />
           <EvolutionChart data={evolution} />
