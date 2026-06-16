@@ -137,21 +137,24 @@ export default function AccountsPage() {
           <h1 className="text-2xl font-bold text-white">Contas</h1>
           <p className="text-slate-400 text-sm mt-1">Gerencie suas contas financeiras</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <PluggyConnectButton />
-          <Button
-            variant="outline"
-            onClick={() => setTransferOpen(true)}
-            disabled={accounts.length < 2}
-            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white gap-2"
-          >
-            <ArrowLeftRight className="w-4 h-4" />
-            Nova transferência
-          </Button>
-          <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-500 text-white gap-2">
-            <Plus className="w-4 h-4" />
-            Nova conta
-          </Button>
+          {/* grid-cols-2 no mobile → igual largura; sm:contents dissolve o wrapper no flex pai */}
+          <div className="grid grid-cols-2 gap-2 sm:contents">
+            <Button
+              variant="outline"
+              onClick={() => setTransferOpen(true)}
+              disabled={accounts.length < 2}
+              className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white gap-2"
+            >
+              <ArrowLeftRight className="w-4 h-4 flex-shrink-0" />
+              Nova transferência
+            </Button>
+            <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-500 text-white gap-2">
+              <Plus className="w-4 h-4 flex-shrink-0" />
+              Nova conta
+            </Button>
+          </div>
         </div>
       </div>
 

@@ -15,7 +15,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { Loader2, ArrowRight } from 'lucide-react'
 import { todayISO } from '@/lib/utils/date'
@@ -35,6 +34,21 @@ const DEFAULT_FORM: TransferFormData = {
   date: todayISO(),
   description: 'Transferência',
   notes: '',
+}
+
+function AccountTriggerContent({ account }: { account: Account | undefined }) {
+  if (!account) {
+    return <span className="text-slate-500 text-sm">Selecione…</span>
+  }
+  return (
+    <div className="flex items-center gap-2 min-w-0 flex-1">
+      <span
+        className="w-2 h-2 rounded-full flex-shrink-0"
+        style={{ backgroundColor: account.color }}
+      />
+      <span className="truncate text-sm">{account.name}</span>
+    </div>
+  )
 }
 
 export function TransferForm({ open, accounts, onClose, onSubmit }: TransferFormProps) {
@@ -86,14 +100,16 @@ export function TransferForm({ open, accounts, onClose, onSubmit }: TransferForm
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-md">
+      <DialogContent className="bg-slate-900 border-slate-800 text-white w-full max-w-md">
         <DialogHeader>
           <DialogTitle>Nova transferência</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
-          {/* Origem → Destino */}
-          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+
+          {/* Origem / Destino — coluna única no mobile, lado a lado no desktop */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-end sm:gap-2">
+
             <div className="space-y-2">
               <Label className="text-slate-300 text-sm">Origem</Label>
               <Select
@@ -101,7 +117,7 @@ export function TransferForm({ open, accounts, onClose, onSubmit }: TransferForm
                 onValueChange={(v) => { if (v) set('from_account_id', v) }}
               >
                 <SelectTrigger className="bg-slate-800 border-slate-700 text-white h-11">
-                  <SelectValue placeholder="Selecione…" />
+                  <AccountTriggerContent account={fromAccount} />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-700">
                   {accounts.map((a) => (
@@ -123,7 +139,8 @@ export function TransferForm({ open, accounts, onClose, onSubmit }: TransferForm
               </Select>
             </div>
 
-            <div className="pb-1 flex items-end justify-center h-11">
+            {/* Seta — visível apenas no desktop */}
+            <div className="hidden sm:flex items-end justify-center h-11">
               <ArrowRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
             </div>
 
@@ -134,7 +151,7 @@ export function TransferForm({ open, accounts, onClose, onSubmit }: TransferForm
                 onValueChange={(v) => { if (v) set('to_account_id', v) }}
               >
                 <SelectTrigger className="bg-slate-800 border-slate-700 text-white h-11">
-                  <SelectValue placeholder="Selecione…" />
+                  <AccountTriggerContent account={toAccount} />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-700">
                   {accounts.map((a) => (
@@ -164,20 +181,20 @@ export function TransferForm({ open, accounts, onClose, onSubmit }: TransferForm
           {/* Preview de saldos */}
           {fromAccount && toAccount && !sameAccountError && (
             <div className="flex items-center gap-3 rounded-lg bg-slate-800/60 px-4 py-3 text-xs text-slate-400">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: fromAccount.color }}
                 />
-                <span>{fromAccount.name}</span>
+                <span className="truncate">{fromAccount.name}</span>
               </div>
               <ArrowRight className="w-3 h-3 text-slate-600 flex-shrink-0" />
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <span
                   className="w-2 h-2 rounded-full flex-shrink-0"
                   style={{ backgroundColor: toAccount.color }}
                 />
-                <span>{toAccount.name}</span>
+                <span className="truncate">{toAccount.name}</span>
               </div>
             </div>
           )}
