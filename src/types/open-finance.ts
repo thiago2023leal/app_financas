@@ -1,6 +1,4 @@
-// ─── Open Finance — Estrutura preparatória ──────────────────────────────────
-// Compatível com: Pluggy, Belvo, Klavi
-// Implementação futura: não implementado, apenas interfaces e estrutura
+// ─── Open Finance — tipos de provider e DB ───────────────────────────────────
 
 export type OFProviderSlug = 'pluggy' | 'belvo' | 'klavi'
 
@@ -11,6 +9,7 @@ export interface OFProvider {
   active: boolean
 }
 
+// Conexão armazenada em of_connections (DB)
 export interface OFConnection {
   id: string
   user_id: string
@@ -22,6 +21,7 @@ export interface OFConnection {
   created_at: string
 }
 
+// Dado bruto retornado pelo provider (nível de adapter)
 export interface OFAccount {
   external_id: string
   connection_id: string
@@ -30,6 +30,22 @@ export interface OFAccount {
   balance: number
   currency: string
   institution_name: string
+}
+
+// Linha armazenada em of_accounts (DB)
+export interface OFAccountRecord {
+  id: string
+  user_id: string
+  connection_id: string
+  account_id: string | null
+  external_id: string
+  name: string
+  type: string
+  institution: string
+  currency: string
+  last_balance: number | null
+  last_sync: string | null
+  created_at: string
 }
 
 export interface OFTransaction {

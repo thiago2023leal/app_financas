@@ -29,6 +29,7 @@ export type {
   OFProvider,
   OFConnection,
   OFAccount,
+  OFAccountRecord,
   OFTransaction,
 } from './open-finance'
 

@@ -16,3 +16,20 @@
 ### Arquitetura
 - Hook useTransactions consolidado
 - Service layer padronizada
+
+## v0.4 - Accounts Cache Sprint
+
+### Performance
+- Implementado TanStack Query para contas
+- Eliminadas consultas duplicadas de accounts
+- Cache compartilhado entre Dashboard, Contas, Transações e Recorrências
+
+### Arquitetura
+- Introduzido QueryClient global
+- Invalidação automática após create/update/delete
+- API pública de useAccounts preservada
+
+### Ganhos
+- 4 consultas duplicadas → 1 consulta inicial
+- Navegações subsequentes servidas pelo cache
+- Waterfall do dashboard removido
