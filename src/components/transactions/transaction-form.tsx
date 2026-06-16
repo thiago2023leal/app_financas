@@ -1,19 +1,22 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { Transaction, TransactionFormData, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '@/types'
+import { useAccounts } from '@/lib/hooks/use-accounts'
+import { transactionsService } from '@/lib/services/transactions.service'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
-import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
+import { todayISO } from '@/lib/utils/date'
 
 interface TransactionFormProps {
   open: boolean
@@ -27,11 +30,13 @@ const defaultForm: TransactionFormData = {
   amount: '',
   type: 'despesa',
   category: 'Alimentação',
-  date: new Date().toISOString().split('T')[0],
+  date: todayISO(),
+  account_id: '',
+  notes: '',
 }
 
 export function TransactionForm({ open, onClose, onSuccess, transaction }: TransactionFormProps) {
-  const supabase = createClient()
+  const { accounts } = useAccounts()
   const [form, setForm] = useState<TransactionFormData>(defaultForm)
   const [loading, setLoading] = useState(false)
 
@@ -39,13 +44,15 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
     if (transaction) {
       setForm({
         description: transaction.description,
-        amount: transaction.amount.toString(),
+        amount: transaction.amount.toString().replace('.', ','),
         type: transaction.type,
         category: transaction.category,
         date: transaction.date,
+        account_id: transaction.account_id ?? '',
+        notes: transaction.notes ?? '',
       })
     } else {
-      setForm(defaultForm)
+      setForm({ ...defaultForm, date: todayISO() })
     }
   }, [transaction, open])
 
@@ -59,32 +66,23 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     const amount = parseFloat(form.amount.replace(',', '.'))
-    if (isNaN(amount) || amount <= 0) {
-      toast.error('Informe um valor válido maior que zero.')
-      return
-    }
+    if (isNaN(amount) || amount <= 0) return
 
     setLoading(true)
-    const payload = {
-      description: form.description.trim(),
-      amount,
-      type: form.type,
-      category: form.category,
-      date: form.date,
-    }
-
-    const { error } = transaction
-      ? await supabase.from('transactions').update(payload).eq('id', transaction.id)
-      : await supabase.from('transactions').insert(payload)
-
-    if (error) {
-      toast.error('Erro ao salvar transação. Tente novamente.')
-    } else {
-      toast.success(transaction ? 'Transação atualizada!' : 'Transação criada!')
+    try {
+      if (transaction) {
+        await transactionsService.update(transaction.id, form)
+      } else {
+        await transactionsService.create(form)
+      }
       onSuccess()
       onClose()
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err) || 'Erro desconhecido'
+      toast.error(`Erro: ${msg}`)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -104,13 +102,14 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
                 key={t}
                 type="button"
                 onClick={() => updateType(t)}
-                className={`py-2 rounded-md text-sm font-medium transition-colors capitalize ${
+                className={cn(
+                  'py-2 rounded-md text-sm font-medium transition-colors',
                   form.type === t
                     ? t === 'receita'
                       ? 'bg-emerald-600 text-white'
                       : 'bg-red-600 text-white'
                     : 'text-slate-400 hover:text-white'
-                }`}
+                )}
               >
                 {t === 'receita' ? 'Receita' : 'Despesa'}
               </button>
@@ -124,6 +123,7 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               required
+              maxLength={100}
               className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
             />
           </div>
@@ -136,6 +136,7 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
                 value={form.amount}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                 required
+                inputMode="decimal"
                 className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-blue-500"
               />
             </div>
@@ -151,6 +152,23 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
             </div>
           </div>
 
+          {/* Conta */}
+          {accounts.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-slate-300 text-sm">Conta <span className="text-slate-600">(opcional)</span></Label>
+              <select
+                value={form.account_id ?? ''}
+                onChange={(e) => setForm((f) => ({ ...f, account_id: e.target.value }))}
+                className="w-full h-10 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 text-sm focus:outline-none focus:border-blue-500"
+              >
+                <option value="">Sem conta específica</option>
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <Label className="text-slate-300 text-sm">Categoria</Label>
             <div className="grid grid-cols-3 gap-2">
@@ -159,11 +177,12 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
                   key={cat}
                   type="button"
                   onClick={() => setForm((f) => ({ ...f, category: cat }))}
-                  className={`px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                  className={cn(
+                    'px-2 py-1.5 rounded-lg text-xs font-medium border transition-colors',
                     form.category === cat
                       ? 'bg-blue-600 border-blue-500 text-white'
                       : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'
-                  }`}
+                  )}
                 >
                   {cat}
                 </button>
@@ -185,7 +204,7 @@ export function TransactionForm({ open, onClose, onSuccess, transaction }: Trans
               disabled={loading}
               className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+              {loading && <Loader2 className="w-4 h-4 animate-spin mr-1" />}
               {loading ? 'Salvando...' : transaction ? 'Salvar' : 'Criar'}
             </Button>
           </div>

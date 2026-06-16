@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -27,14 +27,20 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isAuthRoute =
-    request.nextUrl.pathname.startsWith('/login') ||
-    request.nextUrl.pathname.startsWith('/register')
-  const isDashboardRoute =
-    request.nextUrl.pathname.startsWith('/dashboard') ||
-    request.nextUrl.pathname.startsWith('/transactions')
+  const { pathname } = request.nextUrl
 
-  if (!user && isDashboardRoute) {
+  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register')
+
+  const isProtectedRoute =
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/transactions') ||
+    pathname.startsWith('/accounts') ||
+    pathname.startsWith('/goals') ||
+    pathname.startsWith('/budgets') ||
+    pathname.startsWith('/recurring') ||
+    pathname.startsWith('/ai')
+
+  if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

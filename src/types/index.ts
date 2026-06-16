@@ -1,49 +1,52 @@
-export type TransactionType = 'receita' | 'despesa'
+import type { Account } from './accounts'
+import type { Category, TransactionType } from './base'
 
-export type Category =
-  | 'Alimentação'
-  | 'Transporte'
-  | 'Moradia'
-  | 'Lazer'
-  | 'Saúde'
-  | 'Educação'
-  | 'Salário'
-  | 'Freelance'
-  | 'Outros'
+// ─── Base primitives ─────────────────────────────────────────────────────────
+export {
+  CATEGORIES,
+  INCOME_CATEGORIES,
+  EXPENSE_CATEGORIES,
+} from './base'
+export type { TransactionType, Category } from './base'
 
-export const CATEGORIES: Category[] = [
-  'Alimentação',
-  'Transporte',
-  'Moradia',
-  'Lazer',
-  'Saúde',
-  'Educação',
-  'Salário',
-  'Freelance',
-  'Outros',
-]
+// ─── Account ─────────────────────────────────────────────────────────────────
+export type { Account, AccountFormData, AccountType } from './accounts'
+export { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from './accounts'
 
-export const INCOME_CATEGORIES: Category[] = ['Salário', 'Freelance', 'Outros']
-export const EXPENSE_CATEGORIES: Category[] = [
-  'Alimentação',
-  'Transporte',
-  'Moradia',
-  'Lazer',
-  'Saúde',
-  'Educação',
-  'Outros',
-]
+// ─── Goal ────────────────────────────────────────────────────────────────────
+export type { Goal, GoalFormData, GoalStatus } from './goals'
 
+// ─── Budget ──────────────────────────────────────────────────────────────────
+export type { Budget, BudgetFormData, BudgetWithSpent } from './budgets'
+
+// ─── Recurring ───────────────────────────────────────────────────────────────
+export type { RecurringTransaction, RecurringFormData, RecurringFrequency } from './recurring'
+export { RECURRING_FREQUENCY_LABELS } from './recurring'
+
+// ─── Open Finance ────────────────────────────────────────────────────────────
+export type {
+  OFProviderSlug,
+  OFProvider,
+  OFConnection,
+  OFAccount,
+  OFTransaction,
+} from './open-finance'
+
+// ─── Transaction ─────────────────────────────────────────────────────────────
 export interface Transaction {
   id: string
   user_id: string
+  account_id?: string | null
   description: string
   amount: number
   type: TransactionType
   category: Category
   date: string
+  notes?: string | null
+  is_recurring?: boolean
   created_at: string
   updated_at: string
+  account?: Account
 }
 
 export interface TransactionFormData {
@@ -52,6 +55,8 @@ export interface TransactionFormData {
   type: TransactionType
   category: Category
   date: string
+  account_id?: string
+  notes?: string
 }
 
 export interface DashboardSummary {
@@ -72,4 +77,5 @@ export interface TransactionFilters {
   year: number
   category: Category | 'all'
   search: string
+  account_id?: string | 'all'
 }

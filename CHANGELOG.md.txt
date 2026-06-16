@@ -1,0 +1,18 @@
+# Changelog
+
+## v0.3 - Dashboard Optimization Sprint
+
+### Correções
+- Corrigido risco de XSS no Assistente IA
+- Corrigido re-render desnecessário em transações
+- Implementado tratamento de erro em consultas
+
+### Performance
+- Dashboard reduzido de 8 para 3 queries
+- monthlyEvolution otimizado
+- Recent transactions usando LIMIT 8
+- Consultas executadas em paralelo
+
+### Arquitetura
+- Hook useTransactions consolidado
+- Service layer padronizada

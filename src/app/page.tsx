@@ -1,6 +1,7 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, BarChart3, Shield, Download, Smartphone, Zap } from 'lucide-react'
+import { BarChart3, Shield, Download, Smartphone, Zap, TrendingUp } from 'lucide-react'
 
 const features = [
   {
@@ -40,11 +41,8 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-slate-800">
         <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <TrendingUp className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-semibold text-lg">FinançasPro</span>
+          <div className="bg-white rounded-xl p-1.5">
+            <Image src="/logo-lvision.png" alt="L-Vision Segurança Eletrônica" width={128} height={36} />
           </div>
           <div className="flex items-center gap-3">
             <Link href="/login">
@@ -123,13 +121,12 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-slate-800 py-8 text-center text-slate-500 text-sm px-4">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="w-5 h-5 rounded bg-blue-600 flex items-center justify-center">
-            <TrendingUp className="w-3 h-3 text-white" />
+        <div className="flex items-center justify-center mb-3">
+          <div className="bg-white rounded-lg p-1.5">
+            <Image src="/logo-lvision.png" alt="L-Vision Segurança Eletrônica" width={100} height={28} />
           </div>
-          <span className="text-slate-300 font-medium">FinançasPro</span>
         </div>
-        <p>© {new Date().getFullYear()} FinançasPro. Controle financeiro pessoal.</p>
+        <p>© {new Date().getFullYear()} L-Vision. Segurança Eletrônica.</p>
       </footer>
     </div>
   )

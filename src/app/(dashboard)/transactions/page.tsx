@@ -1,22 +1,19 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Transaction, TransactionFilters } from '@/types'
+import { useState, useMemo } from 'react'
+import type { Transaction, TransactionFilters } from '@/types'
+import { useTransactions } from '@/lib/hooks/use-transactions'
 import { exportToCSV } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Plus, Download } from 'lucide-react'
+import { Plus, Download, AlertTriangle } from 'lucide-react'
 import { TransactionFiltersBar } from '@/components/transactions/transaction-filters'
 import { TransactionTable } from '@/components/transactions/transaction-table'
 import { TransactionForm } from '@/components/transactions/transaction-form'
 import { DeleteDialog } from '@/components/transactions/delete-dialog'
 
 export default function TransactionsPage() {
-  const supabase = createClient()
   const now = new Date()
 
-  const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState<TransactionFilters>({
     month: now.getMonth() + 1,
     year: now.getFullYear(),
@@ -27,30 +24,13 @@ export default function TransactionsPage() {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [deletingTransaction, setDeletingTransaction] = useState<Transaction | null>(null)
 
-  const fetchTransactions = useCallback(async () => {
-    setLoading(true)
-    const start = `${filters.year}-${String(filters.month).padStart(2, '0')}-01`
-    const end = new Date(filters.year, filters.month, 0).toISOString().split('T')[0]
+  // Search é aplicado client-side para manter feedback instantâneo sem query por keystroke
+  const queryFilters = useMemo(
+    () => ({ month: filters.month, year: filters.year, category: filters.category, search: '' }),
+    [filters.month, filters.year, filters.category]
+  )
 
-    let query = supabase
-      .from('transactions')
-      .select('*')
-      .gte('date', start)
-      .lte('date', end)
-      .order('date', { ascending: false })
-
-    if (filters.category !== 'all') {
-      query = query.eq('category', filters.category)
-    }
-
-    const { data } = await query
-    setTransactions((data as Transaction[]) ?? [])
-    setLoading(false)
-  }, [filters.month, filters.year, filters.category, supabase])
-
-  useEffect(() => {
-    fetchTransactions()
-  }, [fetchTransactions])
+  const { transactions, loading, error, reload } = useTransactions(queryFilters)
 
   const filtered = filters.search
     ? transactions.filter((t) =>
@@ -107,8 +87,20 @@ export default function TransactionsPage() {
 
       <TransactionFiltersBar filters={filters} onChange={setFilters} />
 
-      {/* Summary row */}
-      {!loading && filtered.length > 0 && (
+      {error && (
+        <div className="flex items-center gap-3 bg-red-950/50 border border-red-900/50 rounded-xl px-4 py-3 text-sm">
+          <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <span className="text-red-300">{error}</span>
+          <button
+            onClick={reload}
+            className="ml-auto text-red-400 hover:text-red-300 underline text-xs"
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && filtered.length > 0 && (
         <div className="flex gap-4 text-sm">
           <span className="text-emerald-400 font-medium">
             + R$ {totalIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
@@ -130,14 +122,14 @@ export default function TransactionsPage() {
       <TransactionForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditingTransaction(null) }}
-        onSuccess={fetchTransactions}
+        onSuccess={reload}
         transaction={editingTransaction}
       />
 
       <DeleteDialog
         transaction={deletingTransaction}
         onClose={() => setDeletingTransaction(null)}
-        onSuccess={fetchTransactions}
+        onSuccess={reload}
       />
     </div>
   )
