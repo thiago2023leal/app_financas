@@ -4,14 +4,16 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAccounts } from '@/lib/hooks/use-accounts'
 import { useOFAccounts, useOFConnections, useLinkOFAccount, useUnlinkOFAccount, OF_ACCOUNTS_KEY, OF_CONNECTIONS_KEY } from '@/lib/hooks/use-of-accounts'
+import { useTransfers } from '@/lib/hooks/use-transfers'
 import { AccountCard } from '@/components/accounts/account-card'
 import { AccountForm } from '@/components/accounts/account-form'
+import { TransferForm } from '@/components/transfers/transfer-form'
 import { PluggyConnectButton } from '@/components/open-finance/pluggy-connect-button'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, CreditCard, AlertTriangle, RefreshCw, Loader2, Link2, Link2Off } from 'lucide-react'
-import type { Account, AccountFormData } from '@/types'
+import { Plus, CreditCard, AlertTriangle, RefreshCw, Loader2, Link2, Link2Off, ArrowLeftRight } from 'lucide-react'
+import type { Account, AccountFormData, TransferFormData } from '@/types'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -35,11 +37,19 @@ export default function AccountsPage() {
   const linkMutation = useLinkOFAccount()
   const unlinkMutation = useUnlinkOFAccount()
 
+  const { create: createTransfer } = useTransfers()
+
   const [formOpen, setFormOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [syncingId, setSyncingId] = useState<string | null>(null)
+  const [transferOpen, setTransferOpen] = useState(false)
+
+  async function handleTransfer(formData: TransferFormData) {
+    await createTransfer(formData)
+    toast.success('Transferência realizada.')
+  }
 
   // Contas OF sem vínculo com conta interna
   const unlinkedOFAccounts = ofAccounts.filter((ofa) => ofa.account_id === null)
@@ -129,6 +139,15 @@ export default function AccountsPage() {
         </div>
         <div className="flex items-center gap-2">
           <PluggyConnectButton />
+          <Button
+            variant="outline"
+            onClick={() => setTransferOpen(true)}
+            disabled={accounts.length < 2}
+            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white gap-2"
+          >
+            <ArrowLeftRight className="w-4 h-4" />
+            Nova transferência
+          </Button>
           <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-500 text-white gap-2">
             <Plus className="w-4 h-4" />
             Nova conta
@@ -263,6 +282,14 @@ export default function AccountsPage() {
         isManual={!editingAccount || !ofAccounts.find((ofa) => ofa.account_id === editingAccount.id)}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
+      />
+
+      {/* Transfer modal */}
+      <TransferForm
+        open={transferOpen}
+        accounts={accounts}
+        onClose={() => setTransferOpen(false)}
+        onSubmit={handleTransfer}
       />
 
       {/* Delete confirm */}

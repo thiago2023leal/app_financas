@@ -88,20 +88,27 @@ export const accountsService = {
 
     if (accErr) throwPg(accErr)
 
-    const { data: txns, error: txErr } = await supabase
-      .from('transactions')
-      .select('amount, type')
-      .eq('account_id', id)
+    const [{ data: txns, error: txErr }, { data: sent, error: sentErr }, { data: received, error: recErr }] =
+      await Promise.all([
+        supabase.from('transactions').select('amount, type').eq('account_id', id),
+        supabase.from('transfers').select('amount').eq('from_account_id', id),
+        supabase.from('transfers').select('amount').eq('to_account_id', id),
+      ])
 
     if (txErr) throwPg(txErr)
+    if (sentErr) throwPg(sentErr)
+    if (recErr) throwPg(recErr)
 
-    const delta = (txns ?? []).reduce((sum, t) => {
-      return t.type === 'receita' ? sum + t.amount : sum - t.amount
-    }, 0)
+    const txDelta = (txns ?? []).reduce(
+      (sum, t) => (t.type === 'receita' ? sum + t.amount : sum - t.amount),
+      0
+    )
+    const sentTotal     = (sent     ?? []).reduce((sum, t) => sum - t.amount, 0)
+    const receivedTotal = (received ?? []).reduce((sum, t) => sum + t.amount, 0)
 
     const { error } = await supabase
       .from('accounts')
-      .update({ current_balance: account!.initial_balance + delta })
+      .update({ current_balance: account!.initial_balance + txDelta + sentTotal + receivedTotal })
       .eq('id', id)
 
     if (error) throwPg(error)

@@ -33,6 +33,9 @@ export type {
   OFTransaction,
 } from './open-finance'
 
+// ─── Transfer ─────────────────────────────────────────────────────────────────
+export type { Transfer, TransferFormData } from './transfers'
+
 // ─── Transaction ─────────────────────────────────────────────────────────────
 export interface Transaction {
   id: string
