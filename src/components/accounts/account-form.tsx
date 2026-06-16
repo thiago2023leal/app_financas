@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Account, AccountFormData, AccountType, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -49,6 +49,21 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
       : DEFAULT_FORM
   )
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!open) return
+    setForm(
+      account
+        ? {
+            name: account.name,
+            type: account.type,
+            initial_balance: account.initial_balance.toFixed(2).replace('.', ','),
+            color: account.color,
+            icon: account.icon,
+          }
+        : DEFAULT_FORM
+    )
+  }, [open, account])
 
   function set<K extends keyof AccountFormData>(key: K, value: AccountFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
