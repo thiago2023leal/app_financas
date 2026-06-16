@@ -260,6 +260,7 @@ export default function AccountsPage() {
       <AccountForm
         open={formOpen}
         account={editingAccount}
+        isManual={!editingAccount || !ofAccounts.find((ofa) => ofa.account_id === editingAccount.id)}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
       />

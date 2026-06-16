@@ -49,8 +49,9 @@ export const accountsService = {
       color: formData.color,
       icon: formData.icon,
     }
-    if (formData.initial_balance !== undefined) {
-      updates.initial_balance = parseCurrencyInput(formData.initial_balance)
+    const balanceChanged = formData.initial_balance !== undefined
+    if (balanceChanged) {
+      updates.initial_balance = parseCurrencyInput(formData.initial_balance!)
     }
 
     const { data, error } = await supabase
@@ -61,6 +62,11 @@ export const accountsService = {
       .single()
 
     if (error) throwPg(error)
+
+    if (balanceChanged) {
+      await accountsService.recalculateBalance(id)
+    }
+
     return data
   },
 

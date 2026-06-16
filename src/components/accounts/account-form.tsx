@@ -23,6 +23,7 @@ const PRESET_COLORS = [
 interface AccountFormProps {
   open: boolean
   account?: Account | null
+  isManual?: boolean
   onClose: () => void
   onSubmit: (data: AccountFormData) => Promise<void>
 }
@@ -35,7 +36,7 @@ const DEFAULT_FORM: AccountFormData = {
   icon: 'wallet',
 }
 
-export function AccountForm({ open, account, onClose, onSubmit }: AccountFormProps) {
+export function AccountForm({ open, account, isManual, onClose, onSubmit }: AccountFormProps) {
   const [form, setForm] = useState<AccountFormData>(() =>
     account
       ? {
@@ -109,9 +110,12 @@ export function AccountForm({ open, account, onClose, onSubmit }: AccountFormPro
             </div>
           </div>
 
-          {!account && (
+          {(!account || isManual) && (
             <div className="space-y-2">
-              <Label className="text-slate-300 text-sm">Saldo inicial</Label>
+              <Label className="text-slate-300 text-sm">
+                Saldo inicial
+                {account && <span className="text-slate-500 text-xs ml-2">(o saldo atual será recalculado)</span>}
+              </Label>
               <Input
                 value={form.initial_balance}
                 onChange={(e) => set('initial_balance', e.target.value)}

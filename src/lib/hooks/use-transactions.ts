@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { transactionsService } from '@/lib/services/transactions.service'
+import { ACCOUNTS_QUERY_KEY } from '@/lib/hooks/use-accounts'
 import type { Transaction, TransactionFormData, TransactionFilters } from '@/types'
 import { toast } from 'sonner'
 
 export function useTransactions(filters: TransactionFilters) {
+  const queryClient = useQueryClient()
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,19 +33,22 @@ export function useTransactions(filters: TransactionFilters) {
   const create = useCallback(async (formData: TransactionFormData) => {
     const t = await transactionsService.create(formData)
     await load()
+    queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY })
     return t
-  }, [load])
+  }, [load, queryClient])
 
   const update = useCallback(async (id: string, formData: TransactionFormData) => {
     const t = await transactionsService.update(id, formData)
     await load()
+    queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY })
     return t
-  }, [load])
+  }, [load, queryClient])
 
   const remove = useCallback(async (id: string) => {
     await transactionsService.remove(id)
     setTransactions((prev) => prev.filter((t) => t.id !== id))
-  }, [])
+    queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY })
+  }, [queryClient])
 
   return { transactions, loading, error, create, update, remove, reload: load }
 }

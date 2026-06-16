@@ -31,10 +31,16 @@ export function useAccounts() {
   const updateMutation = useMutation({
     mutationFn: ({ id, formData }: { id: string; formData: Partial<AccountFormData> }) =>
       accountsService.update(id, formData),
-    onSuccess: (account) => {
-      queryClient.setQueryData<Account[]>(ACCOUNTS_QUERY_KEY, (old = []) =>
-        old.map((a) => (a.id === account.id ? account : a))
-      )
+    onSuccess: (account, { formData }) => {
+      if (formData.initial_balance !== undefined) {
+        // initial_balance changed — recalculateBalance was called server-side;
+        // refetch to get the updated current_balance
+        queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY })
+      } else {
+        queryClient.setQueryData<Account[]>(ACCOUNTS_QUERY_KEY, (old = []) =>
+          old.map((a) => (a.id === account.id ? account : a))
+        )
+      }
     },
   })
 
