@@ -62,19 +62,14 @@ export function MobileNav() {
         />
       )}
 
-      {/* Bottom sheet "Mais" — z-50 garante posição acima do overlay */}
+      {/* Bottom sheet "Mais" — renderizado apenas quando aberto */}
+      {moreOpen && (
       <div
         id="mobile-more-menu"
         role="dialog"
         aria-label="Mais opções de navegação"
-        aria-modal={moreOpen}
-        aria-hidden={!moreOpen}
-        className={cn(
-          'md:hidden fixed bottom-14 left-0 right-0 z-50',
-          'bg-slate-900 border-t border-x border-slate-800 rounded-t-2xl',
-          'transition-transform duration-200 ease-in-out',
-          moreOpen ? 'translate-y-0' : 'translate-y-full pointer-events-none'
-        )}
+        aria-modal={true}
+        className="md:hidden fixed bottom-14 left-0 right-0 z-50 bg-slate-900 border-t border-x border-slate-800 rounded-t-2xl animate-in slide-in-from-bottom-2 duration-200"
       >
         <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-slate-800">
           <p className="text-slate-400 text-xs font-medium uppercase tracking-wide">Mais</p>
@@ -105,6 +100,7 @@ export function MobileNav() {
           ))}
         </nav>
       </div>
+      )}
 
       {/* Mobile bottom nav */}
       <nav
