@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils'
 import { LogOut, MoreHorizontal, X } from 'lucide-react'
 import { NAV_ITEMS } from './nav-items'
 
-const PRIMARY_NAV = NAV_ITEMS.slice(0, 4)
-const MORE_NAV = NAV_ITEMS.slice(4)
+const PRIMARY_NAV = NAV_ITEMS.slice(0, 3)
+const MORE_NAV = NAV_ITEMS.slice(3)
 
 export function MobileNav() {
   const pathname = usePathname()
