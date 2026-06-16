@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Transaction, TransactionFilters } from '@/types'
-import { useTransactions } from '@/lib/hooks/use-transactions'
+import { useTransactions, DASHBOARD_SUMMARY_KEY } from '@/lib/hooks/use-transactions'
+import { ACCOUNTS_QUERY_KEY } from '@/lib/hooks/use-accounts'
 import { exportToCSV } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Plus, Download, AlertTriangle } from 'lucide-react'
@@ -30,7 +32,14 @@ export default function TransactionsPage() {
     [filters.month, filters.year, filters.category]
   )
 
+  const queryClient = useQueryClient()
   const { transactions, loading, error, reload } = useTransactions(queryFilters)
+
+  const handleSuccess = useCallback(() => {
+    reload()
+    queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY })
+    queryClient.invalidateQueries({ queryKey: DASHBOARD_SUMMARY_KEY })
+  }, [reload, queryClient])
 
   const filtered = filters.search
     ? transactions.filter((t) =>
@@ -122,14 +131,14 @@ export default function TransactionsPage() {
       <TransactionForm
         open={formOpen}
         onClose={() => { setFormOpen(false); setEditingTransaction(null) }}
-        onSuccess={reload}
+        onSuccess={handleSuccess}
         transaction={editingTransaction}
       />
 
       <DeleteDialog
         transaction={deletingTransaction}
         onClose={() => setDeletingTransaction(null)}
-        onSuccess={reload}
+        onSuccess={handleSuccess}
       />
     </div>
   )
