@@ -42,6 +42,9 @@ export type { AccountMovement, AccountMovementKind, AccountMovementCounterpart }
 // ─── AI Draft (extração estruturada — IA Transacional) ───────────────────────
 export type { AIDraft, TransactionDraftPayload, TransferDraftPayload } from './ai-draft'
 
+// ─── AI Chat (estado visual do chat — IA Transacional Fase 2) ────────────────
+export type { ChatEntry, DraftStatus } from './ai-chat'
+
 // ─── Transaction ─────────────────────────────────────────────────────────────
 export interface Transaction {
   id: string

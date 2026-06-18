@@ -5,7 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Bot, Send, User, Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { AIMessage } from '@/lib/ai/ai.interface'
+import { toast } from 'sonner'
+import { DraftCard } from '@/components/ai/draft-card'
+import type { AIDraft, ChatEntry } from '@/types'
 
 const SUGGESTIONS = [
   'Onde gasto mais este mês?',
@@ -15,43 +17,70 @@ const SUGGESTIONS = [
   'Qual categoria mais cara?',
 ]
 
+function newId() {
+  return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 export default function AIPage() {
-  const [messages, setMessages] = useState<AIMessage[]>([])
+  const [entries, setEntries] = useState<ChatEntry[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [entries])
 
   async function send(text?: string) {
     const content = (text ?? input).trim()
     if (!content || loading) return
 
-    const userMsg: AIMessage = { role: 'user', content }
-    const newMessages = [...messages, userMsg]
-    setMessages(newMessages)
+    const userEntry: ChatEntry = { id: newId(), message: { role: 'user', content } }
+    const newEntries = [...entries, userEntry]
+    setEntries(newEntries)
     setInput('')
     setLoading(true)
 
     try {
+      // Nunca enviar ChatEntry para a API — apenas o formato de transporte { role, content }.
+      const wireMessages = newEntries.map((e) => e.message)
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages }),
+        body: JSON.stringify({ messages: wireMessages }),
       })
-      const data = await res.json() as { reply?: string; error?: string }
+      const data = await res.json() as { reply?: string; draft?: AIDraft; error?: string }
       if (!res.ok || data.error) {
         throw new Error(data.error ?? 'Erro ao processar resposta.')
       }
-      setMessages((prev) => [...prev, { role: 'assistant', content: data.reply! }])
+      setEntries((prev) => [
+        ...prev,
+        {
+          id: newId(),
+          message: { role: 'assistant', content: data.reply! },
+          draft: data.draft,
+          draftStatus: data.draft ? 'pending' : undefined,
+        },
+      ])
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro na conexão com o assistente.'
-      setMessages((prev) => [...prev, { role: 'assistant', content: `⚠️ ${msg}` }])
+      setEntries((prev) => [...prev, { id: newId(), message: { role: 'assistant', content: `⚠️ ${msg}` } }])
     } finally {
       setLoading(false)
     }
+  }
+
+  function handleCancelDraft(entryId: string) {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === entryId ? { ...e, draftStatus: 'cancelled' } : e))
+    )
+  }
+
+  function handleConfirmDraft() {
+    // Fase 2 — somente UX. Nenhuma gravação ocorre aqui.
+    toast.info('A confirmação automática será habilitada na próxima atualização.')
   }
 
   return (
@@ -71,7 +100,7 @@ export default function AIPage() {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 py-4 pr-1">
-        {messages.length === 0 ? (
+        {entries.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center gap-6">
             <div className="w-16 h-16 rounded-2xl bg-blue-600/20 border border-blue-600/30 flex items-center justify-center">
               <Sparkles className="w-8 h-8 text-blue-400" />
@@ -96,34 +125,46 @@ export default function AIPage() {
           </div>
         ) : (
           <>
-            {messages.map((msg, i) => (
-              <div key={i} className={cn('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
-                <div className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-                  msg.role === 'user' ? 'bg-blue-600' : 'bg-slate-800 border border-slate-700'
-                )}>
-                  {msg.role === 'user'
-                    ? <User className="w-4 h-4 text-white" />
-                    : <Bot className="w-4 h-4 text-blue-400" />
-                  }
+            {entries.map((entry) => (
+              <div key={entry.id} className="space-y-2">
+                <div className={cn('flex gap-3', entry.message.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className={cn(
+                    'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
+                    entry.message.role === 'user' ? 'bg-blue-600' : 'bg-slate-800 border border-slate-700'
+                  )}>
+                    {entry.message.role === 'user'
+                      ? <User className="w-4 h-4 text-white" />
+                      : <Bot className="w-4 h-4 text-blue-400" />
+                    }
+                  </div>
+                  <div className={cn(
+                    'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
+                    entry.message.role === 'user'
+                      ? 'bg-blue-600 text-white rounded-tr-none'
+                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
+                  )}>
+                    {entry.message.content.split('\n').map((line, i, arr) => (
+                      <span key={i}>
+                        {line.split(/(\*\*.*?\*\*)/).map((part, j) =>
+                          /^\*\*.*?\*\*$/.test(part)
+                            ? <strong key={j}>{part.slice(2, -2)}</strong>
+                            : part
+                        )}
+                        {i < arr.length - 1 && <br />}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className={cn(
-                  'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
-                  msg.role === 'user'
-                    ? 'bg-blue-600 text-white rounded-tr-none'
-                    : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-tl-none'
-                )}>
-                  {msg.content.split('\n').map((line, i, arr) => (
-                    <span key={i}>
-                      {line.split(/(\*\*.*?\*\*)/).map((part, j) =>
-                        /^\*\*.*?\*\*$/.test(part)
-                          ? <strong key={j}>{part.slice(2, -2)}</strong>
-                          : part
-                      )}
-                      {i < arr.length - 1 && <br />}
-                    </span>
-                  ))}
-                </div>
+
+                {/* Card de confirmação — não herda max-w-[80%] da bolha de mensagem */}
+                {entry.draft && (
+                  <DraftCard
+                    draft={entry.draft}
+                    status={entry.draftStatus ?? 'pending'}
+                    onCancel={() => handleCancelDraft(entry.id)}
+                    onConfirm={handleConfirmDraft}
+                  />
+                )}
               </div>
             ))}
             {loading && (
@@ -143,7 +184,7 @@ export default function AIPage() {
 
       {/* Input */}
       <div className="flex-shrink-0 pt-4 border-t border-slate-800">
-        {messages.length > 0 && (
+        {entries.length > 0 && (
           <div className="flex gap-2 mb-3 flex-wrap">
             {SUGGESTIONS.slice(0, 3).map((s) => (
               <button
