@@ -13,6 +13,9 @@ export class ClaudeAdapter implements IAIProvider {
     const response = await client.messages.create({
       model: this.defaultModel,
       max_tokens: 1024,
+      // Reduz a variação de amostragem na extração estruturada (confidence/categoria)
+      // sem zerar completamente a flexibilidade do modelo.
+      temperature: 0.1,
       ...(systemPrompt ? { system: systemPrompt } : {}),
       ...(tools && tools.length > 0 ? { tools: tools as Anthropic.Tool[] } : {}),
       messages: messages.map((m) => ({ role: m.role, content: m.content })),

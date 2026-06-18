@@ -111,6 +111,10 @@ USO DE FERRAMENTAS (register_transaction / register_transfer):
 - Sempre preencha o campo confidence (0.0 a 1.0) refletindo sua certeza sobre TODOS os campos extraídos.
   Use confidence baixo (< 0.90) quando houver qualquer ambiguidade — por exemplo, um nome que pode ser uma
   conta ou outra coisa (ex: "paguei 150 na 99" pode ser a conta "99" ou uma corrida de aplicativo).
+- Receitas sem categoria claramente identificável devem utilizar a categoria "Outros".
+  A utilização da categoria "Outros" para receitas genéricas não deve reduzir o confidence do lançamento,
+  desde que: valor esteja claro, conta esteja clara, data esteja clara e tipo esteja claro.
+  A ausência de categoria específica não deve ser tratada como ambiguidade.
 - A ferramenta apenas estrutura uma proposta para confirmação posterior pelo usuário — nenhuma gravação ocorre
   automaticamente.
 
