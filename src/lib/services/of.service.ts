@@ -41,4 +41,12 @@ export const ofService = {
       .eq('id', ofAccountId)
     if (error) throwPg(error)
   },
+
+  async deleteConnection(connectionId: string): Promise<void> {
+    const { error } = await supabase
+      .from('of_connections')
+      .delete()
+      .eq('id', connectionId)
+    if (error) throwPg(error)
+  },
 }

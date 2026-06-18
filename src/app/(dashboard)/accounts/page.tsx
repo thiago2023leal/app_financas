@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAccounts } from '@/lib/hooks/use-accounts'
-import { useOFAccounts, useOFConnections, useLinkOFAccount, useUnlinkOFAccount, OF_ACCOUNTS_KEY, OF_CONNECTIONS_KEY } from '@/lib/hooks/use-of-accounts'
+import { useOFAccounts, useOFConnections, useLinkOFAccount, useUnlinkOFAccount, useDeleteOFConnection, OF_ACCOUNTS_KEY, OF_CONNECTIONS_KEY } from '@/lib/hooks/use-of-accounts'
 import { useTransfers } from '@/lib/hooks/use-transfers'
 import { AccountCard } from '@/components/accounts/account-card'
 import { AccountForm } from '@/components/accounts/account-form'
@@ -12,7 +12,7 @@ import { PluggyConnectButton } from '@/components/open-finance/pluggy-connect-bu
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
-import { Plus, CreditCard, AlertTriangle, RefreshCw, Loader2, Link2, Link2Off, ArrowLeftRight } from 'lucide-react'
+import { Plus, CreditCard, AlertTriangle, RefreshCw, Loader2, Link2, Link2Off, ArrowLeftRight, Unplug } from 'lucide-react'
 import type { Account, AccountFormData, TransferFormData } from '@/types'
 import { toast } from 'sonner'
 import {
@@ -36,6 +36,7 @@ export default function AccountsPage() {
   const { data: connections = [] } = useOFConnections()
   const linkMutation = useLinkOFAccount()
   const unlinkMutation = useUnlinkOFAccount()
+  const deleteConnectionMutation = useDeleteOFConnection()
 
   const { create: createTransfer } = useTransfers()
 
@@ -45,10 +46,26 @@ export default function AccountsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [syncingId, setSyncingId] = useState<string | null>(null)
   const [transferOpen, setTransferOpen] = useState(false)
+  const [disconnectingConnectionId, setDisconnectingConnectionId] = useState<string | null>(null)
+  const [disconnectLoading, setDisconnectLoading] = useState(false)
 
   async function handleTransfer(formData: TransferFormData) {
     await createTransfer(formData)
     toast.success('Transferência realizada.')
+  }
+
+  async function handleDisconnect() {
+    if (!disconnectingConnectionId) return
+    setDisconnectLoading(true)
+    try {
+      await deleteConnectionMutation.mutateAsync(disconnectingConnectionId)
+      toast.success('Conexão Open Finance removida com sucesso.\nAs contas permanecem disponíveis para gerenciamento manual.')
+      setDisconnectingConnectionId(null)
+    } catch {
+      toast.error('Erro ao remover conexão Open Finance.')
+    } finally {
+      setDisconnectLoading(false)
+    }
   }
 
   // Contas OF sem vínculo com conta interna
@@ -171,25 +188,36 @@ export default function AccountsPage() {
           <p className="text-slate-400 text-xs font-medium uppercase tracking-wide mb-3">Open Finance</p>
           {connections.map((conn) => (
             <div key={conn.id} className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${conn.status === 'active' ? 'bg-emerald-400' : conn.status === 'error' ? 'bg-red-400' : 'bg-yellow-400'}`} />
-                <span className="text-slate-300 text-sm">{conn.provider_id}</span>
+                <span className="text-slate-300 text-sm truncate">{conn.provider_id}</span>
                 {conn.status === 'error' && (
-                  <span className="text-red-400 text-xs">· erro na última sincronização</span>
+                  <span className="text-red-400 text-xs hidden sm:inline">· erro na última sincronização</span>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={syncingId === conn.external_id}
-                onClick={() => handleSync(conn.external_id)}
-                className="text-slate-400 hover:text-white hover:bg-slate-800 gap-1.5 h-7 px-2 text-xs"
-              >
-                {syncingId === conn.external_id
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <RefreshCw className="w-3 h-3" />}
-                Sincronizar
-              </Button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={syncingId === conn.external_id}
+                  onClick={() => handleSync(conn.external_id)}
+                  className="text-slate-400 hover:text-white hover:bg-slate-800 gap-1.5 h-7 px-2 text-xs"
+                >
+                  {syncingId === conn.external_id
+                    ? <Loader2 className="w-3 h-3 animate-spin" />
+                    : <RefreshCw className="w-3 h-3" />}
+                  Sincronizar
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDisconnectingConnectionId(conn.id)}
+                  className="text-slate-500 hover:text-red-400 hover:bg-red-950/30 gap-1.5 h-7 px-2 text-xs"
+                >
+                  <Unplug className="w-3 h-3" />
+                  Remover
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -294,6 +322,43 @@ export default function AccountsPage() {
         onClose={() => setTransferOpen(false)}
         onSubmit={handleTransfer}
       />
+
+      {/* Disconnect OF connection confirm */}
+      <Dialog
+        open={!!disconnectingConnectionId}
+        onOpenChange={(v) => !v && setDisconnectingConnectionId(null)}
+      >
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-orange-400">
+              <Unplug className="w-5 h-5" />
+              Remover conexão Open Finance?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 text-slate-300 text-sm">
+            <p>A sincronização com o banco será interrompida.</p>
+            <p>As contas continuarão existindo normalmente e poderão ser gerenciadas manualmente.</p>
+            <p className="text-slate-500 text-xs">Esta ação não remove transações, transferências ou saldos já registrados.</p>
+          </div>
+          <div className="flex gap-3 mt-2">
+            <Button
+              variant="outline"
+              onClick={() => setDisconnectingConnectionId(null)}
+              className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleDisconnect}
+              disabled={disconnectLoading}
+              className="flex-1 bg-orange-600 hover:bg-orange-500 text-white gap-2"
+            >
+              {disconnectLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Remover conexão
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete confirm */}
       <Dialog open={!!deletingAccount} onOpenChange={(v) => !v && setDeletingAccount(null)}>

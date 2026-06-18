@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ofService } from '@/lib/services/of.service'
+import { ACCOUNTS_QUERY_KEY } from '@/lib/hooks/use-accounts'
 
 export const OF_ACCOUNTS_KEY = ['of-accounts'] as const
 export const OF_CONNECTIONS_KEY = ['of-connections'] as const
@@ -36,5 +37,17 @@ export function useUnlinkOFAccount() {
   return useMutation({
     mutationFn: (ofAccountId: string) => ofService.unlinkOFAccount(ofAccountId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: OF_ACCOUNTS_KEY }),
+  })
+}
+
+export function useDeleteOFConnection() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (connectionId: string) => ofService.deleteConnection(connectionId),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: OF_CONNECTIONS_KEY }),
+      queryClient.invalidateQueries({ queryKey: OF_ACCOUNTS_KEY }),
+      queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY }),
+    ]),
   })
 }
