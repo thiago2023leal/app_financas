@@ -8,7 +8,8 @@ import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { DraftCard } from '@/components/ai/draft-card'
 import { useDraftConfirmation } from '@/lib/hooks/use-draft-confirmation'
-import type { AIDraft, ChatEntry } from '@/types'
+import { useAccounts } from '@/lib/hooks/use-accounts'
+import type { AIDraft, ChatEntry, TransactionDraftPayload, TransferDraftPayload } from '@/types'
 
 const SUGGESTIONS = [
   'Onde gasto mais este mês?',
@@ -28,8 +29,10 @@ export default function AIPage() {
   const [entries, setEntries] = useState<ChatEntry[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const { confirmDraft } = useDraftConfirmation()
+  const { accounts } = useAccounts()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -84,6 +87,30 @@ export default function AIPage() {
     setEntries((prev) =>
       prev.map((e) => (e.id === entryId && e.draftStatus === 'error' ? { ...e, draftStatus: 'pending', draftError: undefined } : e))
     )
+  }
+
+  function handleStartEdit(entryId: string) {
+    const entry = entries.find((e) => e.id === entryId)
+    // Defesa: só permite editar draft pendente — espelha a guarda usada em handleConfirmDraft.
+    if (!entry || entry.draftStatus !== 'pending') return
+    setEditingEntryId(entryId)
+  }
+
+  function handleCancelEdit() {
+    // Descarta o formulário sem tocar em entries — o draft original permanece intacto.
+    setEditingEntryId(null)
+  }
+
+  function handleSaveEdit(entryId: string, newPayload: TransactionDraftPayload | TransferDraftPayload) {
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (e.id !== entryId || !e.draft) return e
+        return e.draft.kind === 'transaction'
+          ? { ...e, draft: { ...e.draft, payload: newPayload as TransactionDraftPayload } }
+          : { ...e, draft: { ...e.draft, payload: newPayload as TransferDraftPayload } }
+      })
+    )
+    setEditingEntryId(null)
   }
 
   async function handleConfirmDraft(entryId: string) {
@@ -194,9 +221,14 @@ export default function AIPage() {
                     draft={entry.draft}
                     status={entry.draftStatus ?? 'pending'}
                     errorMessage={entry.draftError}
+                    accounts={accounts}
+                    isEditing={editingEntryId === entry.id}
                     onCancel={() => handleCancelDraft(entry.id)}
                     onConfirm={() => handleConfirmDraft(entry.id)}
                     onRetry={() => handleRetryDraft(entry.id)}
+                    onStartEdit={() => handleStartEdit(entry.id)}
+                    onSaveEdit={(payload) => handleSaveEdit(entry.id, payload)}
+                    onCancelEdit={handleCancelEdit}
                   />
                 )}
               </div>
