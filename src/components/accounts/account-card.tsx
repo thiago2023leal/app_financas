@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale'
 import { Account, ACCOUNT_TYPE_LABELS } from '@/types'
 import type { OFAccountRecord } from '@/types/open-finance'
 import { formatCurrency } from '@/lib/utils'
-import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, Pencil, Trash2, RefreshCw } from 'lucide-react'
+import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, Pencil, Trash2, RefreshCw, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ACCOUNT_ICONS: Record<string, React.ElementType> = {
@@ -21,9 +21,10 @@ interface AccountCardProps {
   ofAccount?: OFAccountRecord
   onEdit: (account: Account) => void
   onDelete: (account: Account) => void
+  onViewHistory?: (account: Account) => void
 }
 
-export function AccountCard({ account, ofAccount, onEdit, onDelete }: AccountCardProps) {
+export function AccountCard({ account, ofAccount, onEdit, onDelete, onViewHistory }: AccountCardProps) {
   const Icon = ACCOUNT_ICONS[account.type] ?? Wallet
   const isNegative = account.current_balance < 0
   const isBankNegative = ofAccount?.last_balance !== null && (ofAccount?.last_balance ?? 0) < 0
@@ -51,6 +52,16 @@ export function AccountCard({ account, ofAccount, onEdit, onDelete }: AccountCar
           </div>
         </div>
         <div className="flex items-center gap-1">
+          {onViewHistory && (
+            <button
+              onClick={() => onViewHistory(account)}
+              className="p-1.5 text-slate-500 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors"
+              aria-label="Ver histórico de movimentações"
+              title="Ver histórico"
+            >
+              <History className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={() => onEdit(account)}
             className="p-1.5 text-slate-500 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors"

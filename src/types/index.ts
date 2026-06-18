@@ -36,6 +36,9 @@ export type {
 // ─── Transfer ─────────────────────────────────────────────────────────────────
 export type { Transfer, TransferFormData } from './transfers'
 
+// ─── Account History ────────────────────────────────────────────────────────
+export type { AccountMovement, AccountMovementKind, AccountMovementCounterpart } from './account-history'
+
 // ─── Transaction ─────────────────────────────────────────────────────────────
 export interface Transaction {
   id: string

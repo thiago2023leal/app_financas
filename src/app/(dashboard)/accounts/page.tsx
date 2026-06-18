@@ -7,6 +7,7 @@ import { useOFAccounts, useOFConnections, useLinkOFAccount, useUnlinkOFAccount, 
 import { useTransfers } from '@/lib/hooks/use-transfers'
 import { AccountCard } from '@/components/accounts/account-card'
 import { AccountForm } from '@/components/accounts/account-form'
+import { AccountHistoryModal } from '@/components/accounts/account-history-modal'
 import { TransferForm } from '@/components/transfers/transfer-form'
 import { PluggyConnectButton } from '@/components/open-finance/pluggy-connect-button'
 import { Button } from '@/components/ui/button'
@@ -48,6 +49,7 @@ export default function AccountsPage() {
   const [transferOpen, setTransferOpen] = useState(false)
   const [disconnectingConnectionId, setDisconnectingConnectionId] = useState<string | null>(null)
   const [disconnectLoading, setDisconnectLoading] = useState(false)
+  const [historyAccount, setHistoryAccount] = useState<Account | null>(null)
 
   async function handleTransfer(formData: TransferFormData) {
     await createTransfer(formData)
@@ -253,6 +255,7 @@ export default function AccountsPage() {
                   ofAccount={ofAccount}
                   onEdit={openEdit}
                   onDelete={setDeletingAccount}
+                  onViewHistory={setHistoryAccount}
                 />
                 {ofAccount && (
                   <button
@@ -321,6 +324,12 @@ export default function AccountsPage() {
         accounts={accounts}
         onClose={() => setTransferOpen(false)}
         onSubmit={handleTransfer}
+      />
+
+      {/* Account history modal */}
+      <AccountHistoryModal
+        account={historyAccount}
+        onClose={() => setHistoryAccount(null)}
       />
 
       {/* Disconnect OF connection confirm */}
