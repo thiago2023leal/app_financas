@@ -7,6 +7,7 @@ import { Bot, Send, User, Loader2, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { toast } from 'sonner'
 import { DraftCard } from '@/components/ai/draft-card'
+import { useDraftConfirmation } from '@/lib/hooks/use-draft-confirmation'
 import type { AIDraft, ChatEntry } from '@/types'
 
 const SUGGESTIONS = [
@@ -28,6 +29,7 @@ export default function AIPage() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const { confirmDraft } = useDraftConfirmation()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -74,13 +76,43 @@ export default function AIPage() {
 
   function handleCancelDraft(entryId: string) {
     setEntries((prev) =>
-      prev.map((e) => (e.id === entryId ? { ...e, draftStatus: 'cancelled' } : e))
+      prev.map((e) => (e.id === entryId && e.draftStatus === 'pending' ? { ...e, draftStatus: 'cancelled' } : e))
     )
   }
 
-  function handleConfirmDraft() {
-    // Fase 2 — somente UX. Nenhuma gravação ocorre aqui.
-    toast.info('A confirmação automática será habilitada na próxima atualização.')
+  function handleRetryDraft(entryId: string) {
+    setEntries((prev) =>
+      prev.map((e) => (e.id === entryId && e.draftStatus === 'error' ? { ...e, draftStatus: 'pending', draftError: undefined } : e))
+    )
+  }
+
+  async function handleConfirmDraft(entryId: string) {
+    const entry = entries.find((e) => e.id === entryId)
+    if (!entry?.draft) return
+    // Guarda: bloqueia duplo clique, confirmação de draft cancelado e re-execução de draft já confirmado.
+    if (entry.draftStatus !== 'pending') return
+
+    setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, draftStatus: 'executing' } : e)))
+
+    try {
+      await confirmDraft(entry.draft)
+      setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, draftStatus: 'confirmed' } : e)))
+      toast.success(
+        entry.draft.kind === 'transfer'
+          ? 'Transferência registrada com sucesso.'
+          : entry.draft.payload.type === 'receita'
+            ? 'Receita registrada com sucesso.'
+            : 'Despesa registrada com sucesso.'
+      )
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro ao registrar lançamento.'
+      setEntries((prev) => prev.map((e) => (e.id === entryId ? { ...e, draftStatus: 'error', draftError: msg } : e)))
+      // useTransfers().create() já exibe seu próprio toast de erro antes de relançar —
+      // evitar toast duplicado para transferências; transações usam o service direto e não toastam.
+      if (entry.draft.kind === 'transaction') {
+        toast.error(`Erro ao registrar: ${msg}`)
+      }
+    }
   }
 
   return (
@@ -161,8 +193,10 @@ export default function AIPage() {
                   <DraftCard
                     draft={entry.draft}
                     status={entry.draftStatus ?? 'pending'}
+                    errorMessage={entry.draftError}
                     onCancel={() => handleCancelDraft(entry.id)}
-                    onConfirm={handleConfirmDraft}
+                    onConfirm={() => handleConfirmDraft(entry.id)}
+                    onRetry={() => handleRetryDraft(entry.id)}
                   />
                 )}
               </div>

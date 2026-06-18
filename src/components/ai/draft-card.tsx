@@ -2,19 +2,25 @@
 
 import { Button } from '@/components/ui/button'
 import { formatCurrency, formatDate, cn } from '@/lib/utils'
-import { Receipt, ArrowLeftRight, Check, X } from 'lucide-react'
+import { Receipt, ArrowLeftRight, Check, X, AlertTriangle, Loader2 } from 'lucide-react'
 import type { AIDraft, DraftStatus } from '@/types'
 
 interface DraftCardProps {
   draft: AIDraft
   status: DraftStatus
+  errorMessage?: string
   onCancel: () => void
   onConfirm: () => void
+  onRetry: () => void
 }
 
-export function DraftCard({ draft, status, onCancel, onConfirm }: DraftCardProps) {
+export function DraftCard({ draft, status, errorMessage, onCancel, onConfirm, onRetry }: DraftCardProps) {
   const isTransaction = draft.kind === 'transaction'
   const confidencePct = Math.round(draft.confidence * 100)
+
+  const successLabel = draft.kind === 'transaction'
+    ? (draft.payload.type === 'receita' ? 'Receita registrada com sucesso' : 'Despesa registrada com sucesso')
+    : 'Transferência registrada com sucesso'
 
   return (
     <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
@@ -80,17 +86,46 @@ export function DraftCard({ draft, status, onCancel, onConfirm }: DraftCardProps
         </div>
       )}
 
-      {status === 'cancelled' && (
-        <div className="flex items-center gap-1.5 text-slate-500 text-xs pt-1">
-          <X className="w-3.5 h-3.5" />
-          Cancelado
+      {status === 'executing' && (
+        <div className="flex gap-2 pt-1">
+          <Button type="button" variant="outline" disabled className="flex-1 border-slate-700 text-slate-500">
+            Cancelar
+          </Button>
+          <Button type="button" disabled className="flex-1 bg-blue-600/60 text-white gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Confirmando...
+          </Button>
         </div>
       )}
 
       {status === 'confirmed' && (
         <div className="flex items-center gap-1.5 text-emerald-400 text-xs pt-1">
-          <Check className="w-3.5 h-3.5" />
-          Confirmado
+          <Check className="w-3.5 h-3.5 flex-shrink-0" />
+          {successLabel}
+        </div>
+      )}
+
+      {status === 'cancelled' && (
+        <div className="flex items-center gap-1.5 text-slate-500 text-xs pt-1">
+          <X className="w-3.5 h-3.5 flex-shrink-0" />
+          Cancelado
+        </div>
+      )}
+
+      {status === 'error' && (
+        <div className="space-y-2 pt-1">
+          <div className="flex items-start gap-1.5 text-red-400 text-xs">
+            <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+            <span>Erro ao registrar{errorMessage ? `: ${errorMessage}` : '.'}</span>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onRetry}
+            className="w-full border-slate-700 text-slate-300 hover:bg-slate-800"
+          >
+            Tentar novamente
+          </Button>
         </div>
       )}
     </div>
