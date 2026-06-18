@@ -79,7 +79,7 @@ export const aiService = {
     try {
       const p = PROVIDERS[provider]
       if (!p) throw new Error(`Provider "${provider}" não encontrado.`)
-      return await p.chat(messages, systemPrompt)
+      return (await p.chat(messages, systemPrompt)).text
     } catch (err) {
       // Fallback: análise local sem IA
       const lastMessage = messages[messages.length - 1]?.content ?? ''

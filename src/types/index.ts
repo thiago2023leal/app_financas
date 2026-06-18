@@ -39,6 +39,9 @@ export type { Transfer, TransferFormData } from './transfers'
 // ─── Account History ────────────────────────────────────────────────────────
 export type { AccountMovement, AccountMovementKind, AccountMovementCounterpart } from './account-history'
 
+// ─── AI Draft (extração estruturada — IA Transacional) ───────────────────────
+export type { AIDraft, TransactionDraftPayload, TransferDraftPayload } from './ai-draft'
+
 // ─── Transaction ─────────────────────────────────────────────────────────────
 export interface Transaction {
   id: string
