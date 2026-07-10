@@ -34,17 +34,36 @@ export default function RecurringPage() {
   const [form, setForm] = useState<RecurringFormData>(DEFAULT_FORM)
   const [saving, setSaving] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [accountPromptRec, setAccountPromptRec] = useState<typeof recurring[0] | null>(null)
+  const [promptAccountId, setPromptAccountId] = useState('')
 
-  async function handleConfirmPayment(id: string) {
+  async function handleConfirmPayment(id: string, accountId?: string) {
     setConfirmingId(id)
     try {
-      await confirmPayment(id)
+      await confirmPayment(id, accountId)
       toast.success('Pagamento confirmado. Transação lançada.')
-    } catch {
-      toast.error('Erro ao confirmar pagamento.')
+      setAccountPromptRec(null)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Erro ao confirmar pagamento.')
     } finally {
       setConfirmingId(null)
     }
+  }
+
+  // Recorrência sem account_id: não confirma direto — pede a conta primeiro,
+  // só para este pagamento (não é salva na recorrência).
+  function openConfirmPayment(r: typeof recurring[0]) {
+    if (r.account_id) {
+      handleConfirmPayment(r.id)
+    } else {
+      setPromptAccountId('')
+      setAccountPromptRec(r)
+    }
+  }
+
+  function handleConfirmWithAccount() {
+    if (!accountPromptRec || !promptAccountId) return
+    handleConfirmPayment(accountPromptRec.id, promptAccountId)
   }
 
   function openCreate() { setEditingRec(null); setForm({ ...DEFAULT_FORM, start_date: todayISO() }); setFormOpen(true) }
@@ -149,7 +168,7 @@ export default function RecurringPage() {
                   <div className="flex gap-1">
                     {r.active && (
                       <button
-                        onClick={() => handleConfirmPayment(r.id)}
+                        onClick={() => openConfirmPayment(r)}
                         disabled={confirmingId === r.id}
                         className="p-1.5 text-emerald-500 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
                         aria-label="Confirmar pagamento"
@@ -235,6 +254,45 @@ export default function RecurringPage() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!accountPromptRec} onOpenChange={(v) => !v && setAccountPromptRec(null)}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white max-w-sm">
+          <DialogHeader><DialogTitle>Selecione a conta</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <p className="text-slate-400 text-sm">
+              Esta recorrência não tem uma conta vinculada. Escolha de qual conta sairá{' '}
+              <span className="text-white font-medium">{accountPromptRec?.description}</span>.
+            </p>
+            {accounts.length === 0 ? (
+              <p className="text-amber-400 text-sm">Você ainda não tem nenhuma conta cadastrada. Crie uma conta antes de confirmar este pagamento.</p>
+            ) : (
+              <div className="space-y-1.5">
+                <Label className="text-slate-300 text-sm">Conta</Label>
+                <select
+                  value={promptAccountId}
+                  onChange={(e) => setPromptAccountId(e.target.value)}
+                  className="w-full h-10 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 text-sm"
+                >
+                  <option value="" disabled>Selecione…</option>
+                  {accounts.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+            )}
+            <div className="flex gap-3 pt-1">
+              <Button type="button" variant="outline" onClick={() => setAccountPromptRec(null)} className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800">Cancelar</Button>
+              <Button
+                type="button"
+                onClick={handleConfirmWithAccount}
+                disabled={!promptAccountId || confirmingId === accountPromptRec?.id}
+                className="flex-1 bg-blue-600 hover:bg-blue-500 text-white"
+              >
+                {confirmingId === accountPromptRec?.id && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                Confirmar pagamento
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

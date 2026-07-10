@@ -99,7 +99,14 @@ export const recurringService = {
   // antes desta confirmação explícita: a data de vencimento é só informativa,
   // nunca bloqueia a confirmação. A transação é sempre datada com o dia da
   // confirmação (data real do pagamento), independentemente de next_due_date.
-  async confirmPayment(id: string): Promise<RecurringTransaction> {
+  //
+  // Se a recorrência já tem account_id, ele é sempre usado (accountId é
+  // ignorado). Se não tem, accountId é obrigatório — é a conta escolhida
+  // pelo usuário só para esta confirmação; a recorrência continua sem
+  // account_id (não é persistido), então a próxima confirmação pergunta de
+  // novo. Isso evita o bug de lançar a despesa sem tirar saldo de nenhuma
+  // conta, deixando Dashboard/Patrimônio inconsistentes.
+  async confirmPayment(id: string, accountId?: string): Promise<RecurringTransaction> {
     const user = await getAuthUser()
 
     const { data: rec, error: fetchErr } = await supabase
@@ -114,6 +121,11 @@ export const recurringService = {
       throw new Error('Recorrência já encerrada.')
     }
 
+    const resolvedAccountId = rec.account_id ?? accountId ?? null
+    if (!resolvedAccountId) {
+      throw new Error('Selecione uma conta para confirmar o pagamento.')
+    }
+
     const { error: insertErr } = await supabase.from('transactions').insert({
       user_id: user.id,
       description: rec.description,
@@ -121,7 +133,7 @@ export const recurringService = {
       type: rec.type,
       category: rec.category,
       date: todayISO(),
-      account_id: rec.account_id,
+      account_id: resolvedAccountId,
       is_recurring: true,
     })
 

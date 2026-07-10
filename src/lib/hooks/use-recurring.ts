@@ -50,8 +50,8 @@ export function useRecurring() {
     setRecurring((prev) => prev.filter((r) => r.id !== id))
   }, [])
 
-  const confirmPayment = useCallback(async (id: string) => {
-    const rec = await recurringService.confirmPayment(id)
+  const confirmPayment = useCallback(async (id: string, accountId?: string) => {
+    const rec = await recurringService.confirmPayment(id, accountId)
     setRecurring((prev) => prev.map((r) => (r.id === id ? rec : r)))
     queryClient.invalidateQueries({ queryKey: ACCOUNTS_QUERY_KEY })
     queryClient.invalidateQueries({ queryKey: DASHBOARD_SUMMARY_KEY })
