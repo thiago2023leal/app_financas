@@ -92,46 +92,48 @@ export const recurringService = {
     if (error) throwPg(error)
   },
 
-  // Gera as transações devidas até hoje
-  async processDue(): Promise<number> {
+  // Confirma o pagamento de UMA ocorrência pendente: lança a transação real
+  // (mesmo caminho usado por um lançamento manual) e avança next_due_date.
+  // Nada é escrito em `transactions` antes desta confirmação explícita —
+  // até aqui a ocorrência é apenas projetada em memória a partir de
+  // next_due_date, sem afetar saldo, dashboard, orçamentos ou IA.
+  async confirmPayment(id: string): Promise<RecurringTransaction> {
     const user = await getAuthUser()
-    const today = format(new Date(), 'yyyy-MM-dd')
 
-    const { data: due, error } = await supabase
+    const { data: rec, error: fetchErr } = await supabase
       .from('recurring_transactions')
       .select('*')
-      .eq('active', true)
-      .lte('next_due_date', today)
+      .eq('id', id)
+      .single()
 
-    if (error) throwPg(error)
-    if (!due || due.length === 0) return 0
-
-    let count = 0
-    for (const rec of due) {
-      if (rec.end_date && rec.next_due_date > rec.end_date) continue
-
-      const { error: insertErr } = await supabase.from('transactions').insert({
-        user_id: user.id,
-        description: rec.description,
-        amount: rec.amount,
-        type: rec.type,
-        category: rec.category,
-        date: rec.next_due_date,
-        account_id: rec.account_id,
-        is_recurring: true,
-      })
-
-      if (insertErr) continue
-
-      const next = nextDueDate(rec.next_due_date, rec.frequency)
-      await supabase
-        .from('recurring_transactions')
-        .update({ next_due_date: next, last_generated: rec.next_due_date })
-        .eq('id', rec.id)
-
-      count++
+    if (fetchErr) throwPg(fetchErr)
+    if (!rec.active) throw new Error('Recorrência está pausada.')
+    if (rec.end_date && rec.next_due_date > rec.end_date) {
+      throw new Error('Recorrência já encerrada.')
     }
 
-    return count
+    const { error: insertErr } = await supabase.from('transactions').insert({
+      user_id: user.id,
+      description: rec.description,
+      amount: rec.amount,
+      type: rec.type,
+      category: rec.category,
+      date: rec.next_due_date,
+      account_id: rec.account_id,
+      is_recurring: true,
+    })
+
+    if (insertErr) throwPg(insertErr)
+
+    const next = nextDueDate(rec.next_due_date, rec.frequency)
+    const { data: updated, error: updateErr } = await supabase
+      .from('recurring_transactions')
+      .update({ next_due_date: next, last_generated: rec.next_due_date })
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateErr) throwPg(updateErr)
+    return updated
   },
 }

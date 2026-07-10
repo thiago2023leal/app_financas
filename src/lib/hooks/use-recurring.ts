@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { recurringService } from '@/lib/services/recurring.service'
 import type { RecurringTransaction, RecurringFormData } from '@/types'
 import { toast } from 'sonner'
+import { todayISO } from '@/lib/utils/date'
 
 export function useRecurring() {
   const [recurring, setRecurring] = useState<RecurringTransaction[]>([])
@@ -45,16 +46,14 @@ export function useRecurring() {
     setRecurring((prev) => prev.filter((r) => r.id !== id))
   }, [])
 
-  const processDue = useCallback(async () => {
-    const count = await recurringService.processDue()
-    if (count > 0) {
-      toast.success(`${count} transação(ões) recorrente(s) gerada(s).`)
-      await load()
-    }
-    return count
-  }, [load])
+  const confirmPayment = useCallback(async (id: string) => {
+    const rec = await recurringService.confirmPayment(id)
+    setRecurring((prev) => prev.map((r) => (r.id === id ? rec : r)))
+    return rec
+  }, [])
 
   const activeCount = recurring.filter((r) => r.active).length
+  const pendingCount = recurring.filter((r) => r.active && r.next_due_date <= todayISO()).length
 
-  return { recurring, loading, create, update, toggle, remove, processDue, reload: load, activeCount }
+  return { recurring, loading, create, update, toggle, remove, confirmPayment, reload: load, activeCount, pendingCount }
 }

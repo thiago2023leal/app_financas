@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRecurring } from '@/lib/hooks/use-recurring'
 import { useAccounts } from '@/lib/hooks/use-accounts'
 import { Button } from '@/components/ui/button'
@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
 import { formatDate } from '@/lib/utils/date'
 import { RecurringFormData, INCOME_CATEGORIES, EXPENSE_CATEGORIES, RECURRING_FREQUENCY_LABELS, type RecurringFrequency } from '@/types'
-import { Plus, RefreshCw, Pencil, Trash2, Loader2, Play, Pause } from 'lucide-react'
+import { Plus, RefreshCw, Pencil, Trash2, Loader2, Play, Pause, CheckCircle2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import {
@@ -27,14 +27,25 @@ const DEFAULT_FORM: RecurringFormData = {
 }
 
 export default function RecurringPage() {
-  const { recurring, loading, create, update, toggle, remove, processDue, activeCount } = useRecurring()
+  const { recurring, loading, create, update, toggle, remove, confirmPayment, activeCount, pendingCount } = useRecurring()
   const { accounts } = useAccounts()
   const [formOpen, setFormOpen] = useState(false)
   const [editingRec, setEditingRec] = useState<typeof recurring[0] | null>(null)
   const [form, setForm] = useState<RecurringFormData>(DEFAULT_FORM)
   const [saving, setSaving] = useState(false)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
-  useEffect(() => { processDue() }, [processDue])
+  async function handleConfirmPayment(id: string) {
+    setConfirmingId(id)
+    try {
+      await confirmPayment(id)
+      toast.success('Pagamento confirmado. Transação lançada.')
+    } catch {
+      toast.error('Erro ao confirmar pagamento.')
+    } finally {
+      setConfirmingId(null)
+    }
+  }
 
   function openCreate() { setEditingRec(null); setForm({ ...DEFAULT_FORM, start_date: todayISO() }); setFormOpen(true) }
   function openEdit(r: typeof recurring[0]) {
@@ -70,7 +81,12 @@ export default function RecurringPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Recorrentes</h1>
-          <p className="text-slate-400 text-sm mt-1">{activeCount} recorrência{activeCount !== 1 ? 's' : ''} ativa{activeCount !== 1 ? 's' : ''}</p>
+          <p className="text-slate-400 text-sm mt-1">
+            {activeCount} recorrência{activeCount !== 1 ? 's' : ''} ativa{activeCount !== 1 ? 's' : ''}
+            {pendingCount > 0 && (
+              <span className="text-amber-400"> · {pendingCount} pendente{pendingCount !== 1 ? 's' : ''}</span>
+            )}
+          </p>
         </div>
         <Button onClick={openCreate} className="bg-blue-600 hover:bg-blue-500 text-white gap-2">
           <Plus className="w-4 h-4" />
@@ -96,19 +112,28 @@ export default function RecurringPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {recurring.map((r) => (
-            <div key={r.id} className={cn('bg-slate-900 border rounded-xl p-4 transition-colors', r.active ? 'border-slate-800' : 'border-slate-800/50 opacity-60')}>
+          {recurring.map((r) => {
+            const isPending = r.active && r.next_due_date <= todayISO()
+            return (
+            <div key={r.id} className={cn('bg-slate-900 border rounded-xl p-4 transition-colors', isPending ? 'border-amber-700/60' : r.active ? 'border-slate-800' : 'border-slate-800/50 opacity-60')}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={cn('w-2 h-2 rounded-full flex-shrink-0', r.type === 'receita' ? 'bg-emerald-400' : 'bg-red-400')} />
                   <div>
-                    <p className="text-white font-medium text-sm">{r.description}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-white font-medium text-sm">{r.description}</p>
+                      {isPending && (
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">Pendente</span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-slate-500 text-xs">{r.category}</span>
                       <span className="text-slate-700">·</span>
                       <span className="text-slate-500 text-xs">{RECURRING_FREQUENCY_LABELS[r.frequency]}</span>
                       <span className="text-slate-700">·</span>
-                      <span className="text-slate-500 text-xs">próx. {formatDate(r.next_due_date)}</span>
+                      <span className={cn('text-xs', isPending ? 'text-amber-400' : 'text-slate-500')}>
+                        {isPending ? 'venceu em' : 'próx.'} {formatDate(r.next_due_date)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -117,6 +142,17 @@ export default function RecurringPage() {
                     {r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
                   </span>
                   <div className="flex gap-1">
+                    {isPending && (
+                      <button
+                        onClick={() => handleConfirmPayment(r.id)}
+                        disabled={confirmingId === r.id}
+                        className="p-1.5 text-emerald-500 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+                        aria-label="Confirmar pagamento"
+                        title="Confirmar pagamento"
+                      >
+                        {confirmingId === r.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
                     <button onClick={() => toggle(r.id, !r.active)} className={cn('p-1.5 rounded-lg transition-colors', r.active ? 'text-slate-500 hover:text-amber-400 hover:bg-slate-800' : 'text-slate-600 hover:text-emerald-400 hover:bg-slate-800')} aria-label={r.active ? 'Pausar' : 'Ativar'}>
                       {r.active ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
                     </button>
@@ -126,7 +162,8 @@ export default function RecurringPage() {
                 </div>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
