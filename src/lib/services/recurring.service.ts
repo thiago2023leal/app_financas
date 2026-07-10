@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/client'
 import { getAuthUser } from '@/lib/supabase/get-user'
 import type { RecurringTransaction, RecurringFormData } from '@/types'
 import { parseCurrencyInput } from '@/lib/utils/currency'
+import { todayISO } from '@/lib/utils/date'
 import { addWeeks, addDays, addMonths, addYears, parseISO, format } from 'date-fns'
 
 const supabase = createClient()
@@ -92,11 +93,12 @@ export const recurringService = {
     if (error) throwPg(error)
   },
 
-  // Confirma o pagamento de UMA ocorrência pendente: lança a transação real
-  // (mesmo caminho usado por um lançamento manual) e avança next_due_date.
-  // Nada é escrito em `transactions` antes desta confirmação explícita —
-  // até aqui a ocorrência é apenas projetada em memória a partir de
-  // next_due_date, sem afetar saldo, dashboard, orçamentos ou IA.
+  // Confirma o pagamento de UMA ocorrência — vencida, vencendo hoje ou
+  // antecipada (next_due_date no futuro) — e lança a transação real (mesmo
+  // caminho usado por um lançamento manual). Nada é escrito em `transactions`
+  // antes desta confirmação explícita: a data de vencimento é só informativa,
+  // nunca bloqueia a confirmação. A transação é sempre datada com o dia da
+  // confirmação (data real do pagamento), independentemente de next_due_date.
   async confirmPayment(id: string): Promise<RecurringTransaction> {
     const user = await getAuthUser()
 
@@ -118,7 +120,7 @@ export const recurringService = {
       amount: rec.amount,
       type: rec.type,
       category: rec.category,
-      date: rec.next_due_date,
+      date: todayISO(),
       account_id: rec.account_id,
       is_recurring: true,
     })

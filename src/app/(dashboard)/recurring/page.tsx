@@ -113,7 +113,10 @@ export default function RecurringPage() {
       ) : (
         <div className="space-y-3">
           {recurring.map((r) => {
-            const isPending = r.active && r.next_due_date <= todayISO()
+            const today = todayISO()
+            const isOverdue = r.active && r.next_due_date < today
+            const isDueToday = r.active && r.next_due_date === today
+            const isPending = isOverdue || isDueToday
             return (
             <div key={r.id} className={cn('bg-slate-900 border rounded-xl p-4 transition-colors', isPending ? 'border-amber-700/60' : r.active ? 'border-slate-800' : 'border-slate-800/50 opacity-60')}>
               <div className="flex items-center justify-between">
@@ -123,7 +126,9 @@ export default function RecurringPage() {
                     <div className="flex items-center gap-2">
                       <p className="text-white font-medium text-sm">{r.description}</p>
                       {isPending && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">Pendente</span>
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
+                          {isOverdue ? 'Vencida' : 'Pendente'}
+                        </span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -132,7 +137,7 @@ export default function RecurringPage() {
                       <span className="text-slate-500 text-xs">{RECURRING_FREQUENCY_LABELS[r.frequency]}</span>
                       <span className="text-slate-700">·</span>
                       <span className={cn('text-xs', isPending ? 'text-amber-400' : 'text-slate-500')}>
-                        {isPending ? 'venceu em' : 'próx.'} {formatDate(r.next_due_date)}
+                        {isPending ? 'venceu em' : 'Próxima em'} {formatDate(r.next_due_date)}
                       </span>
                     </div>
                   </div>
@@ -142,7 +147,7 @@ export default function RecurringPage() {
                     {r.type === 'despesa' ? '-' : '+'}{formatCurrency(r.amount)}
                   </span>
                   <div className="flex gap-1">
-                    {isPending && (
+                    {r.active && (
                       <button
                         onClick={() => handleConfirmPayment(r.id)}
                         disabled={confirmingId === r.id}
