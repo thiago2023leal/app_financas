@@ -13,6 +13,10 @@ export type { TransactionType, Category } from './base'
 export type { Account, AccountFormData, AccountType } from './accounts'
 export { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from './accounts'
 
+// ─── Credit Card ─────────────────────────────────────────────────────────────
+export type { CreditCard, CreditCardFormData, CreditCardBrand } from './credit-cards'
+export { CREDIT_CARD_BRANDS, CREDIT_CARD_BRAND_LABELS } from './credit-cards'
+
 // ─── Goal ────────────────────────────────────────────────────────────────────
 export type { Goal, GoalFormData, GoalStatus } from './goals'
 

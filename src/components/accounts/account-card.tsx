@@ -2,10 +2,10 @@
 
 import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { Account, ACCOUNT_TYPE_LABELS } from '@/types'
+import { Account, ACCOUNT_TYPE_LABELS, CreditCard, CREDIT_CARD_BRAND_LABELS } from '@/types'
 import type { OFAccountRecord } from '@/types/open-finance'
 import { formatCurrency } from '@/lib/utils'
-import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, CreditCard, Pencil, Trash2, RefreshCw, History } from 'lucide-react'
+import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, CreditCard as CreditCardIcon, Pencil, Trash2, RefreshCw, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ACCOUNT_ICONS: Record<string, React.ElementType> = {
@@ -14,18 +14,19 @@ const ACCOUNT_ICONS: Record<string, React.ElementType> = {
   poupanca: PiggyBank,
   digital: Smartphone,
   investimentos: TrendingUp,
-  cartao: CreditCard,
+  cartao: CreditCardIcon,
 }
 
 interface AccountCardProps {
   account: Account
   ofAccount?: OFAccountRecord
+  creditCard?: CreditCard | null
   onEdit: (account: Account) => void
   onDelete: (account: Account) => void
   onViewHistory?: (account: Account) => void
 }
 
-export function AccountCard({ account, ofAccount, onEdit, onDelete, onViewHistory }: AccountCardProps) {
+export function AccountCard({ account, ofAccount, creditCard, onEdit, onDelete, onViewHistory }: AccountCardProps) {
   const Icon = ACCOUNT_ICONS[account.type] ?? Wallet
   const isNegative = account.current_balance < 0
   const isBankNegative = ofAccount?.last_balance !== null && (ofAccount?.last_balance ?? 0) < 0
@@ -80,8 +81,27 @@ export function AccountCard({ account, ofAccount, onEdit, onDelete, onViewHistor
         </div>
       </div>
 
+      {/* Cartão de crédito: metadados (Fase 3) — sem saldo/limite utilizado, reservado para a Fase 6 */}
+      {account.type === 'cartao' && creditCard && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <p className="text-slate-500 text-xs">Bandeira</p>
+            <span className="text-xs font-medium text-white bg-slate-800 px-2 py-0.5 rounded">
+              {CREDIT_CARD_BRAND_LABELS[creditCard.brand]}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <p className="text-slate-500 text-xs">Limite total</p>
+            <p className="text-white font-semibold text-sm">{formatCurrency(creditCard.limit_amount)}</p>
+          </div>
+          <div className="flex items-center gap-1 pt-1 border-t border-slate-800">
+            <p className="text-slate-600 text-xs">Fecha dia {creditCard.closing_day} · Vence dia {creditCard.due_day}</p>
+          </div>
+        </div>
+      )}
+
       {/* Sem vínculo Open Finance: comportamento original */}
-      {!ofAccount && (
+      {!(account.type === 'cartao' && creditCard) && !ofAccount && (
         <div>
           <p className="text-slate-500 text-xs mb-1">Saldo atual</p>
           <p className={cn('text-xl font-bold', isNegative ? 'text-red-400' : 'text-white')}>
@@ -96,7 +116,7 @@ export function AccountCard({ account, ofAccount, onEdit, onDelete, onViewHistor
       )}
 
       {/* Com vínculo Open Finance: dois saldos */}
-      {ofAccount && (
+      {!(account.type === 'cartao' && creditCard) && ofAccount && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-slate-500 text-xs">Saldo calculado</p>

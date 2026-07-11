@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Account, AccountFormData, AccountType, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS } from '@/types'
+import {
+  Account, AccountFormData, AccountType, ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS,
+  CreditCard, CreditCardFormData, CREDIT_CARD_BRANDS, CREDIT_CARD_BRAND_LABELS,
+} from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,12 +23,15 @@ const PRESET_COLORS = [
   '#ec4899', '#06b6d4', '#f97316', '#ef4444',
 ]
 
+const DAY_OPTIONS = Array.from({ length: 28 }, (_, i) => i + 1)
+
 interface AccountFormProps {
   open: boolean
   account?: Account | null
+  creditCard?: CreditCard | null
   isManual?: boolean
   onClose: () => void
-  onSubmit: (data: AccountFormData) => Promise<void>
+  onSubmit: (data: AccountFormData, creditCardData?: CreditCardFormData) => Promise<void>
 }
 
 const DEFAULT_FORM: AccountFormData = {
@@ -36,7 +42,14 @@ const DEFAULT_FORM: AccountFormData = {
   icon: 'wallet',
 }
 
-export function AccountForm({ open, account, isManual, onClose, onSubmit }: AccountFormProps) {
+const DEFAULT_CC_FORM: CreditCardFormData = {
+  brand: 'visa',
+  limit_amount: '',
+  closing_day: '5',
+  due_day: '12',
+}
+
+export function AccountForm({ open, account, creditCard, isManual, onClose, onSubmit }: AccountFormProps) {
   const [form, setForm] = useState<AccountFormData>(() =>
     account
       ? {
@@ -47,6 +60,16 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
           icon: account.icon,
         }
       : DEFAULT_FORM
+  )
+  const [ccForm, setCcForm] = useState<CreditCardFormData>(() =>
+    creditCard
+      ? {
+          brand: creditCard.brand,
+          limit_amount: creditCard.limit_amount.toFixed(2).replace('.', ','),
+          closing_day: String(creditCard.closing_day),
+          due_day: String(creditCard.due_day),
+        }
+      : DEFAULT_CC_FORM
   )
   const [loading, setLoading] = useState(false)
 
@@ -63,7 +86,17 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
           }
         : DEFAULT_FORM
     )
-  }, [open, account])
+    setCcForm(
+      creditCard
+        ? {
+            brand: creditCard.brand,
+            limit_amount: creditCard.limit_amount.toFixed(2).replace('.', ','),
+            closing_day: String(creditCard.closing_day),
+            due_day: String(creditCard.due_day),
+          }
+        : DEFAULT_CC_FORM
+    )
+  }, [open, account, creditCard])
 
   function set<K extends keyof AccountFormData>(key: K, value: AccountFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }))
@@ -81,7 +114,7 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
     if (!form.name.trim()) return
     setLoading(true)
     try {
-      await onSubmit(form)
+      await onSubmit(form, form.type === 'cartao' ? ccForm : undefined)
       onClose()
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err) || 'Erro desconhecido'
@@ -131,6 +164,55 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
               ))}
             </div>
           </div>
+
+          {form.type === 'cartao' && (
+            <>
+              <div className="space-y-2">
+                <Label className="text-slate-300 text-sm">Bandeira</Label>
+                <select
+                  value={ccForm.brand}
+                  onChange={(e) => setCcForm((f) => ({ ...f, brand: e.target.value as CreditCardFormData['brand'] }))}
+                  className="w-full h-11 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 text-sm"
+                >
+                  {CREDIT_CARD_BRANDS.map((b) => <option key={b} value={b}>{CREDIT_CARD_BRAND_LABELS[b]}</option>)}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-slate-300 text-sm">Limite total (R$)</Label>
+                <Input
+                  value={ccForm.limit_amount}
+                  onChange={(e) => setCcForm((f) => ({ ...f, limit_amount: e.target.value }))}
+                  placeholder="0,00"
+                  required
+                  className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-11"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-slate-300 text-sm">Dia de fechamento</Label>
+                  <select
+                    value={ccForm.closing_day}
+                    onChange={(e) => setCcForm((f) => ({ ...f, closing_day: e.target.value }))}
+                    className="w-full h-11 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 text-sm"
+                  >
+                    {DAY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-slate-300 text-sm">Dia de vencimento</Label>
+                  <select
+                    value={ccForm.due_day}
+                    onChange={(e) => setCcForm((f) => ({ ...f, due_day: e.target.value }))}
+                    className="w-full h-11 bg-slate-800 border border-slate-700 text-white rounded-lg px-3 text-sm"
+                  >
+                    {DAY_OPTIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
 
           {(!account || isManual) && form.type !== 'cartao' && (
             <div className="space-y-2">

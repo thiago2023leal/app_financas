@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAccounts } from '@/lib/hooks/use-accounts'
 import { useOFAccounts, useOFConnections, useLinkOFAccount, useUnlinkOFAccount, useDeleteOFConnection, OF_ACCOUNTS_KEY, OF_CONNECTIONS_KEY } from '@/lib/hooks/use-of-accounts'
 import { useTransfers } from '@/lib/hooks/use-transfers'
+import { useCreditCards } from '@/lib/hooks/use-credit-cards'
 import { AccountCard } from '@/components/accounts/account-card'
 import { AccountForm } from '@/components/accounts/account-form'
 import { AccountHistoryModal } from '@/components/accounts/account-history-modal'
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, CreditCard, AlertTriangle, RefreshCw, Loader2, Link2, Link2Off, ArrowLeftRight, Unplug } from 'lucide-react'
-import type { Account, AccountFormData, TransferFormData } from '@/types'
+import type { Account, AccountFormData, TransferFormData, CreditCardFormData } from '@/types'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -40,6 +41,7 @@ export default function AccountsPage() {
   const deleteConnectionMutation = useDeleteOFConnection()
 
   const { create: createTransfer } = useTransfers()
+  const { creditCards, create: createCreditCard, update: updateCreditCard } = useCreditCards()
 
   const [formOpen, setFormOpen] = useState(false)
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
@@ -76,13 +78,21 @@ export default function AccountsPage() {
   function openCreate() { setEditingAccount(null); setFormOpen(true) }
   function openEdit(account: Account) { setEditingAccount(account); setFormOpen(true) }
 
-  async function handleSubmit(formData: AccountFormData) {
+  async function handleSubmit(formData: AccountFormData, creditCardData?: CreditCardFormData) {
     try {
       if (editingAccount) {
         await update(editingAccount.id, formData)
+        if (formData.type === 'cartao' && creditCardData) {
+          const existing = creditCards.find((c) => c.account_id === editingAccount.id)
+          if (existing) await updateCreditCard(existing.id, creditCardData)
+          else await createCreditCard(editingAccount.id, creditCardData)
+        }
         toast.success('Conta atualizada.')
       } else {
-        await create(formData)
+        const account = await create(formData)
+        if (formData.type === 'cartao' && creditCardData) {
+          await createCreditCard(account.id, creditCardData)
+        }
         toast.success('Conta criada.')
       }
     } catch (err: unknown) {
@@ -248,11 +258,13 @@ export default function AccountsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {accounts.map((account) => {
             const ofAccount = ofAccounts.find((ofa) => ofa.account_id === account.id)
+            const creditCard = creditCards.find((c) => c.account_id === account.id)
             return (
               <div key={account.id} className="relative group">
                 <AccountCard
                   account={account}
                   ofAccount={ofAccount}
+                  creditCard={creditCard}
                   onEdit={openEdit}
                   onDelete={setDeletingAccount}
                   onViewHistory={setHistoryAccount}
@@ -313,6 +325,7 @@ export default function AccountsPage() {
       <AccountForm
         open={formOpen}
         account={editingAccount}
+        creditCard={editingAccount ? creditCards.find((c) => c.account_id === editingAccount.id) : null}
         isManual={!editingAccount || !ofAccounts.find((ofa) => ofa.account_id === editingAccount.id)}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
