@@ -69,6 +69,13 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
     setForm((prev) => ({ ...prev, [key]: value }))
   }
 
+  // Cartão de crédito não tem "saldo inicial" — o campo fica travado em 0.
+  // A dívida só nasce das compras lançadas nele (ver Fase 1: a prova
+  // matemática do módulo assume saldo inicial = 0 para qualquer cartão).
+  function selectType(type: AccountType) {
+    setForm((prev) => ({ ...prev, type, initial_balance: type === 'cartao' ? '0' : prev.initial_balance }))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.name.trim()) return
@@ -111,7 +118,7 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
                 <button
                   key={type}
                   type="button"
-                  onClick={() => set('type', type as AccountType)}
+                  onClick={() => selectType(type as AccountType)}
                   className={cn(
                     'px-3 py-2 rounded-lg text-sm font-medium border transition-colors text-left',
                     form.type === type
@@ -125,7 +132,7 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
             </div>
           </div>
 
-          {(!account || isManual) && (
+          {(!account || isManual) && form.type !== 'cartao' && (
             <div className="space-y-2">
               <Label className="text-slate-300 text-sm">
                 Saldo inicial
@@ -138,6 +145,12 @@ export function AccountForm({ open, account, isManual, onClose, onSubmit }: Acco
                 className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 h-11"
               />
             </div>
+          )}
+
+          {form.type === 'cartao' && (
+            <p className="text-slate-500 text-xs -mt-1">
+              Cartões de crédito começam com saldo zero — a dívida nasce das compras lançadas nele.
+            </p>
           )}
 
           <div className="space-y-2">

@@ -23,7 +23,11 @@ export const accountsService = {
 
   async create(formData: AccountFormData): Promise<Account> {
     const user = await getAuthUser()
-    const balance = parseCurrencyInput(formData.initial_balance)
+    // Cartão de crédito nunca tem saldo inicial — defesa em profundidade
+    // (a UI já trava esse campo em 0, isso garante o mesmo mesmo se a
+    // chamada não vier do formulário). Ver Fase 1: a prova matemática do
+    // módulo assume saldo inicial = 0 para qualquer cartão.
+    const balance = formData.type === 'cartao' ? 0 : parseCurrencyInput(formData.initial_balance)
     const { data, error } = await supabase
       .from('accounts')
       .insert({
@@ -51,7 +55,7 @@ export const accountsService = {
     }
     const balanceChanged = formData.initial_balance !== undefined
     if (balanceChanged) {
-      updates.initial_balance = parseCurrencyInput(formData.initial_balance!)
+      updates.initial_balance = formData.type === 'cartao' ? 0 : parseCurrencyInput(formData.initial_balance!)
     }
 
     const { data, error } = await supabase
