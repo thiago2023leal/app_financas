@@ -5,7 +5,7 @@ import { ptBR } from 'date-fns/locale'
 import { Account, ACCOUNT_TYPE_LABELS } from '@/types'
 import type { OFAccountRecord } from '@/types/open-finance'
 import { formatCurrency } from '@/lib/utils'
-import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, Pencil, Trash2, RefreshCw, History } from 'lucide-react'
+import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, CreditCard, Pencil, Trash2, RefreshCw, History } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ACCOUNT_ICONS: Record<string, React.ElementType> = {
@@ -14,6 +14,7 @@ const ACCOUNT_ICONS: Record<string, React.ElementType> = {
   poupanca: PiggyBank,
   digital: Smartphone,
   investimentos: TrendingUp,
+  cartao: CreditCard,
 }
 
 interface AccountCardProps {

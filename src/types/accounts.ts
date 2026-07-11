@@ -1,4 +1,4 @@
-export type AccountType = 'carteira' | 'corrente' | 'poupanca' | 'digital' | 'investimentos'
+export type AccountType = 'carteira' | 'corrente' | 'poupanca' | 'digital' | 'investimentos' | 'cartao'
 
 export const ACCOUNT_TYPES: AccountType[] = [
   'carteira',
@@ -6,6 +6,7 @@ export const ACCOUNT_TYPES: AccountType[] = [
   'poupanca',
   'digital',
   'investimentos',
+  'cartao',
 ]
 
 export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
@@ -14,6 +15,7 @@ export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   poupanca: 'Poupança',
   digital: 'Conta Digital',
   investimentos: 'Investimentos',
+  cartao: 'Cartão de Crédito',
 }
 
 export interface Account {

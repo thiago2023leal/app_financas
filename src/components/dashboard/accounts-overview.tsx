@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useAccounts } from '@/lib/hooks/use-accounts'
 import { formatCurrency } from '@/lib/utils'
-import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, ChevronRight } from 'lucide-react'
+import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, CreditCard, ChevronRight } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { AccountType } from '@/types'
 
@@ -13,6 +13,7 @@ const ICONS: Record<AccountType, React.ElementType> = {
   poupanca: PiggyBank,
   digital: Smartphone,
   investimentos: TrendingUp,
+  cartao: CreditCard,
 }
 
 export function AccountsOverview() {
