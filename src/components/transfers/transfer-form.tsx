@@ -23,6 +23,7 @@ import type { Account, TransferFormData } from '@/types'
 interface TransferFormProps {
   open: boolean
   accounts: Account[]
+  initialData?: Partial<TransferFormData>
   onClose: () => void
   onSubmit: (data: TransferFormData) => Promise<void>
 }
@@ -51,16 +52,16 @@ function AccountTriggerContent({ account }: { account: Account | undefined }) {
   )
 }
 
-export function TransferForm({ open, accounts, onClose, onSubmit }: TransferFormProps) {
+export function TransferForm({ open, accounts, initialData, onClose, onSubmit }: TransferFormProps) {
   const [form, setForm] = useState<TransferFormData>(DEFAULT_FORM)
   const [loading, setLoading] = useState(false)
   const [sameAccountError, setSameAccountError] = useState(false)
 
   useEffect(() => {
     if (!open) return
-    setForm(DEFAULT_FORM)
+    setForm({ ...DEFAULT_FORM, ...initialData })
     setSameAccountError(false)
-  }, [open])
+  }, [open, initialData])
 
   function set<K extends keyof TransferFormData>(key: K, value: TransferFormData[K]) {
     setForm((prev) => {

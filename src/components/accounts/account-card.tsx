@@ -4,8 +4,9 @@ import { formatDistanceToNow } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Account, ACCOUNT_TYPE_LABELS, CreditCard, CREDIT_CARD_BRAND_LABELS } from '@/types'
 import type { OFAccountRecord } from '@/types/open-finance'
-import { formatCurrency } from '@/lib/utils'
-import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, CreditCard as CreditCardIcon, Pencil, Trash2, RefreshCw, History } from 'lucide-react'
+import { useCreditCardInvoice } from '@/lib/hooks/use-credit-cards'
+import { formatCurrency, formatDate } from '@/lib/utils'
+import { Wallet, Building2, PiggyBank, Smartphone, TrendingUp, CreditCard as CreditCardIcon, Pencil, Trash2, RefreshCw, History, Receipt } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ACCOUNT_ICONS: Record<string, React.ElementType> = {
@@ -24,12 +25,20 @@ interface AccountCardProps {
   onEdit: (account: Account) => void
   onDelete: (account: Account) => void
   onViewHistory?: (account: Account) => void
+  onPayInvoice?: (account: Account, amount: number) => void
 }
 
-export function AccountCard({ account, ofAccount, creditCard, onEdit, onDelete, onViewHistory }: AccountCardProps) {
+export function AccountCard({ account, ofAccount, creditCard, onEdit, onDelete, onViewHistory, onPayInvoice }: AccountCardProps) {
   const Icon = ACCOUNT_ICONS[account.type] ?? Wallet
   const isNegative = account.current_balance < 0
   const isBankNegative = ofAccount?.last_balance !== null && (ofAccount?.last_balance ?? 0) < 0
+
+  const { data: invoice } = useCreditCardInvoice(
+    creditCard ? account.id : null,
+    creditCard ? account.current_balance : null,
+    creditCard?.closing_day ?? null,
+    creditCard?.due_day ?? null
+  )
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-colors">
@@ -97,6 +106,27 @@ export function AccountCard({ account, ofAccount, creditCard, onEdit, onDelete, 
           <div className="flex items-center gap-1 pt-1 border-t border-slate-800">
             <p className="text-slate-600 text-xs">Fecha dia {creditCard.closing_day} · Vence dia {creditCard.due_day}</p>
           </div>
+
+          {invoice && (
+            <div className="pt-2 border-t border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <Receipt className="w-3.5 h-3.5 text-slate-500" />
+                  <p className="text-slate-500 text-xs">Fatura atual</p>
+                </div>
+                <p className="text-white font-semibold text-sm">{formatCurrency(invoice.total)}</p>
+              </div>
+              <p className="text-slate-600 text-xs">Vence em {formatDate(invoice.dueDate)}</p>
+              {invoice.total > 0 && onPayInvoice && (
+                <button
+                  onClick={() => onPayInvoice(account, invoice.total)}
+                  className="w-full text-xs font-medium text-blue-400 hover:text-blue-300 bg-blue-950/40 hover:bg-blue-950/60 border border-blue-900/50 rounded-lg py-1.5 transition-colors"
+                >
+                  Pagar fatura
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
 

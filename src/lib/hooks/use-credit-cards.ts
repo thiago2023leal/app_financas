@@ -1,8 +1,31 @@
 'use client'
 
+import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { creditCardsService } from '@/lib/services/credit-cards.service'
+import { creditCardsService, getCurrentInvoice } from '@/lib/services/credit-cards.service'
 import type { CreditCard, CreditCardFormData } from '@/types'
+
+// Fase 5 (Opção B): cálculo síncrono, derivado de current_balance — não é
+// mais uma consulta ao Supabase, então não existe cache próprio para
+// invalidar. O valor já vem certo assim que account.current_balance muda
+// (a invalidação de ACCOUNTS_QUERY_KEY que já existe depois de qualquer
+// transaction/transfer cuida disso). Retorna o mesmo formato { data,
+// isLoading } de uma query, propositalmente, para a Fase 10 poder trocar
+// a implementação por uma consulta real a credit_card_invoices sem
+// exigir mudança em quem consome este hook.
+export function useCreditCardInvoice(
+  accountId: string | null,
+  currentBalance: number | null,
+  closingDay: number | null,
+  dueDay: number | null
+) {
+  const data = useMemo(() => {
+    if (accountId == null || currentBalance == null || closingDay == null || dueDay == null) return undefined
+    return getCurrentInvoice(accountId, currentBalance, closingDay, dueDay)
+  }, [accountId, currentBalance, closingDay, dueDay])
+
+  return { data, isLoading: false }
+}
 
 export const CREDIT_CARDS_QUERY_KEY = ['credit-cards'] as const
 

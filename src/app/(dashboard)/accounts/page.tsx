@@ -49,13 +49,30 @@ export default function AccountsPage() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [syncingId, setSyncingId] = useState<string | null>(null)
   const [transferOpen, setTransferOpen] = useState(false)
+  const [transferInitialData, setTransferInitialData] = useState<Partial<TransferFormData> | undefined>(undefined)
   const [disconnectingConnectionId, setDisconnectingConnectionId] = useState<string | null>(null)
   const [disconnectLoading, setDisconnectLoading] = useState(false)
   const [historyAccount, setHistoryAccount] = useState<Account | null>(null)
 
+  function openTransfer() { setTransferInitialData(undefined); setTransferOpen(true) }
+  function closeTransfer() { setTransferOpen(false); setTransferInitialData(undefined) }
+
+  // Fase 5: pagar a fatura é uma transferência normal (conta escolhida →
+  // conta do cartão) — reaproveita o TransferForm já existente, só
+  // pré-preenchendo destino e valor. Nenhuma despesa nova é criada aqui.
+  function handlePayInvoice(account: Account, amount: number) {
+    setTransferInitialData({
+      to_account_id: account.id,
+      amount: amount.toFixed(2).replace('.', ','),
+      description: `Pagamento fatura ${account.name}`,
+    })
+    setTransferOpen(true)
+  }
+
   async function handleTransfer(formData: TransferFormData) {
+    const isInvoicePayment = !!transferInitialData
     await createTransfer(formData)
-    toast.success('Transferência realizada.')
+    toast.success(isInvoicePayment ? 'Fatura paga com sucesso.' : 'Transferência realizada.')
   }
 
   async function handleDisconnect() {
@@ -172,7 +189,7 @@ export default function AccountsPage() {
           <div className="grid grid-cols-2 gap-2 sm:contents">
             <Button
               variant="outline"
-              onClick={() => setTransferOpen(true)}
+              onClick={openTransfer}
               disabled={accounts.length < 2}
               className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white gap-2"
             >
@@ -268,6 +285,7 @@ export default function AccountsPage() {
                   onEdit={openEdit}
                   onDelete={setDeletingAccount}
                   onViewHistory={setHistoryAccount}
+                  onPayInvoice={handlePayInvoice}
                 />
                 {ofAccount && (
                   <button
@@ -331,11 +349,12 @@ export default function AccountsPage() {
         onSubmit={handleSubmit}
       />
 
-      {/* Transfer modal */}
+      {/* Transfer modal — também usado para pagamento de fatura (Fase 5) */}
       <TransferForm
         open={transferOpen}
         accounts={accounts}
-        onClose={() => setTransferOpen(false)}
+        initialData={transferInitialData}
+        onClose={closeTransfer}
         onSubmit={handleTransfer}
       />
 
