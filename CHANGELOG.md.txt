@@ -33,3 +33,38 @@
 - 4 consultas duplicadas → 1 consulta inicial
 - Navegações subsequentes servidas pelo cache
 - Waterfall do dashboard removido
+
+## v0.9.7 a v1.0.0 - Transferências, histórico e Open Finance
+
+- Transferências entre contas (fundação)
+- Modal de histórico de movimentações por conta
+- Desconexão de conexões Open Finance
+
+## v1.0.1 a v1.0.6 - IA transacional
+
+- Extração estruturada de lançamentos a partir de linguagem natural
+- Card de confirmação visual do lançamento extraído
+- Execução real do lançamento a partir da confirmação
+- Redução de não-determinismo na extração estruturada
+- Edição de draft antes da confirmação
+
+## v1.0.7 a v1.0.11 - Recorrências com confirmação manual de pagamento
+
+- Recorrências passam a exigir confirmação manual de pagamento (em vez de lançamento automático)
+- Correções de consistência de cache de saldo após confirmação
+- Unificação do cálculo de saldo entre trigger SQL e `accounts.service.ts` (migração 004)
+- Botão "Confirmar pagamento" sempre visível em recorrências ativas
+- Exigência de conta ao confirmar pagamento de recorrência sem `account_id`
+
+## v1.0.12 a v1.0.17 - Módulo de Cartões de Crédito (Fases 0-5)
+
+Desenvolvimento faseado do módulo de Cartões de Crédito, com cartão modelado como `Account` do tipo `cartao` (arquitetura híbrida — reaproveita saldo/patrimônio/dashboard/histórico/IA já existentes, com metadados específicos em tabela própria).
+
+- **Fase 0**: fundação de schema — `accounts.type` ampliado para aceitar `'cartao'`; tabela `credit_cards` (limite, fechamento, vencimento) com RLS.
+- **Fase 1**: validação matemática formal do modelo de saldo/dívida do cartão (compra, fatura, pagamento, limite, parcelamento) — sem código.
+- **Fase 2**: cartão habilitado como tipo de conta na UI; correção de saldo inicial travado em zero para cartões.
+- **Fase 3**: metadados do cartão — bandeira, limite total, dia de fechamento e de vencimento.
+- **Fase 4**: validação de que uma compra lançada no cartão já flui corretamente por Dashboard, Patrimônio, Orçamento, Histórico e IA, sem código novo.
+- **Fase 5**: fatura atual computada a partir do saldo do cartão (fonte única de verdade, sem cache próprio) e pagamento de fatura via transferência, reaproveitando o fluxo de transferências existente. Corrigido bug de pagamento duplicado (fatura e saldo divergentes) adotando o saldo da conta como fonte única do valor da fatura.
+
+Release oficial consolidada em `main`: `v1.0.17`.
