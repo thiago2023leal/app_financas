@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { LogOut } from 'lucide-react'
 import { toast } from 'sonner'
 import { NAV_ITEMS } from './nav-items'
+import { Logo } from './logo'
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -25,9 +25,7 @@ export function Sidebar() {
     <aside className="hidden md:flex flex-col w-60 min-h-screen bg-slate-900 border-r border-slate-800 fixed left-0 top-0 z-40">
       {/* Logo */}
       <div className="flex items-center px-4 h-16 border-b border-slate-800">
-        <div className="bg-white rounded-xl p-1.5">
-          <Image src="/logo-lvision.png" alt="L-Vision Segurança Eletrônica" width={128} height={36} />
-        </div>
+        <Logo height={46} />
       </div>
 
       {/* Nav */}
