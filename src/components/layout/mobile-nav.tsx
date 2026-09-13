@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -8,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { LogOut, MoreHorizontal, X } from 'lucide-react'
 import { NAV_ITEMS } from './nav-items'
+import { Logo } from './logo'
 
 const PRIMARY_NAV = NAV_ITEMS.slice(0, 3)
 const MORE_NAV = NAV_ITEMS.slice(3)
@@ -41,9 +41,7 @@ export function MobileNav() {
     <>
       {/* Mobile header */}
       <header className="md:hidden flex items-center justify-between px-4 h-14 bg-slate-900 border-b border-slate-800 fixed top-0 left-0 right-0 z-40">
-        <div className="bg-white rounded-lg p-1">
-          <Image src="/logo-lvision.png" alt="L-Vision Segurança Eletrônica" width={100} height={28} />
-        </div>
+        <Logo height={40} />
         <button
           onClick={handleLogout}
           aria-label="Sair"

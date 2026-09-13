@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import Image from 'next/image'
+import { Logo } from '@/components/layout/logo'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -44,9 +44,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex">
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex-col justify-between p-12">
-        <div className="bg-white rounded-xl p-2">
-          <Image src="/logo-lvision.png" alt="L-Vision Segurança Eletrônica" width={142} height={40} />
-        </div>
+        <Logo height={76} />
         <div>
           <h2 className="text-white text-3xl font-bold mb-4">
             Comece a controlar suas finanças hoje
@@ -60,9 +58,7 @@ export default function RegisterPage() {
       <div className="flex-1 flex items-center justify-center bg-slate-950 p-8">
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-10">
-            <div className="bg-white rounded-xl p-2 inline-block">
-              <Image src="/logo-lvision.png" alt="L-Vision Segurança Eletrônica" width={128} height={36} />
-            </div>
+            <Logo height={52} />
           </div>
 
           <h1 className="text-2xl font-bold text-white mb-2">Criar conta</h1>
